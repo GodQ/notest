@@ -21,6 +21,12 @@ except:
     except ImportError:
         from io import BytesIO as MyIO
 
+base_dir = os.path.abspath(os.path.dirname(__file__))
+libcurl_dir = os.path.join(base_dir, "..", "tools", "libcurl_win64")
+print(libcurl_dir)
+if sys.platform.find("win") > -1:
+    sys.path.append(libcurl_dir)
+
 ESCAPE_DECODING = 'string-escape'
 # Python 3 compatibility
 if sys.version_info[0] > 2:
@@ -324,6 +330,9 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     # reset the body, it holds values from previous runs otherwise
     headers = MyIO()
     body = MyIO()
+    if sys.platform.find("win") > -1:
+        curl.setopt(pycurl.CAINFO,
+                 os.path.join(libcurl_dir, "curl-ca-bundle.crt"))
     curl.setopt(pycurl.WRITEFUNCTION, body.write)
     curl.setopt(pycurl.HEADERFUNCTION, headers.write)
     if test_config.verbose:
