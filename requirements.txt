@@ -1,3 +1,5 @@
 pyyaml
 pycurl
-future
+future 
+jmespath 
+jsonschema
