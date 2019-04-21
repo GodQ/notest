@@ -32,9 +32,9 @@ pyresttest
 - A REST testing and API microbenchmarking tool
 - Tests are defined in basic YAML or JSON config files, no code needed
 - Minimal dependencies (pycurl, pyyaml, optionally future), making it easy to deploy on-server for smoketests/healthchecks
-- Supports [generate/extract/validate](advanced_guide.md) mechanisms to create full test scenarios
+- Supports [generate/extract/validate](docs/advanced_guide.md) mechanisms to create full test scenarios
 - Returns exit codes on failure, to slot into automated configuration management/orchestration tools (also supplies parseable logs)
-- Logic is written and [extensible](extensions.md) in Python
+- Logic is written and [extensible](docs/extensions.md) in Python
 
 # Status
 
@@ -47,7 +47,7 @@ Apache License, Version 2.0
 
 [![Join the chat at https://gitter.im/svanoort/pyresttest](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/svanoort/pyresttest?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[Changelog](CHANGELOG.md) shows the past and present, [milestones](https://github.com/svanoort/pyresttest/milestones) show the future roadmap.
+[Changelog](docs/CHANGELOG.md) shows the past and present, [milestones](https://github.com/svanoort/pyresttest/milestones) show the future roadmap.
 
 * The changelog will also show features/fixes currently merged to the master branch but not released to PyPi yet (pending installation tests across platforms). 
 
@@ -74,7 +74,7 @@ If that is not installed, we'll need to install it first:
 
 **Releases occur every few months, if you want to use unreleased features, it's easy to install from source:**
 
-*See the [Change Log](CHANGELOG.md) for feature status.*
+*See the [Change Log](docs/CHANGELOG.md) for feature status.*
 
 ```shell
 git clone https://github.com/svanoort/pyresttest.git
@@ -143,7 +143,7 @@ Manually copying in a working system pycurl installation may help:
     - headers: {Content-Type: application/json}
   ```
 # Examples
-* The [Quickstart](quickstart.md) should be *everyone's* starting point
+* The [Quickstart](docs/quickstart.md) should be *everyone's* starting point
 * Here's a [really good example](examples/miniapp-extract-validate.yaml) for how to create a user and then do tests on it.  
   - This shows how to use extraction from responses, templating, and different test types
 * If you're trying to do something fancy, take a look at the [content-test.yaml](pyresttest/content-test.yaml).
@@ -154,10 +154,10 @@ Manually copying in a working system pycurl installation may help:
 
 
 # How Do I Use It?
-- The [Quickstart](quickstart.md) walks through common use cases
+- The [Quickstart](docs/quickstart.md) walks through common use cases
 - Benchmarking has its [own section](#benchmarking) below
-- Advanced features have [separate documentation](advanced_guide.md) (templating, generators, content extraction, complex validation).
-- How to [extend PyRestTest](extensions.md) is its own document
+- Advanced features have [separate documentation](docs/advanced_guide.md) (templating, generators, content extraction, complex validation).
+- How to [extend PyRestTest](docs/extensions.md) is its own document
 - There are a [ton of examples](https://github.com/svanoort/pyresttest/tree/master/examples)
 - @BastienAr has created an [Atom editor package](https://atom.io/packages/language-pyresttest) for PyRestTest development (thank you!)
 
@@ -390,12 +390,12 @@ sudo yum install rpm-build
   - Releases are cut periodically from master (every 3-6 months generally, or more often if breaking bugs are present) and released to PyPi
   - Feature development is done in feature branches and merged to master by PR when tested (validated by continuous integration in Jenkins)
   - The 'stable' branch tracks the last release, use this if you want to run PyRestTest from source
-* [The changelog is here](CHANGELOG.md), this will show past releases and features merged to master for the next release but not released 
+* [The changelog is here](docs/CHANGELOG.md), this will show past releases and features merged to master for the next release but not released 
 * Testing: tested on Ubuntu 14/python 2.7 and CentOS 6/python 6.6, plus Debian Wheezy for Python 3.4.3
 * Releases occur every few months to [PyPi](https://pypi.python.org/pypi/pyresttest/) once a few features are ready to go
 * PyRestTest uses [Semantic Versioning 2.0](http://semver.org/)
 * **Back-compatibility is important! PyRestTest makes a strong effort to maintain command-line and YAML format back-compatibility since 1.0.**
-  - [Extension method signatures](extensions.md) are maintained as much as possible. 
+  - [Extension method signatures](docs/extensions.md) are maintained as much as possible. 
   - However, internal python implementations are subject to change.
   - Major version releases (1.x to 2.x, etc) may introduce breaking API changes, but only *with a really darned good reason, and only there's not another way.*
 
@@ -405,7 +405,7 @@ We welcome any feedback you have, including pull requests, reported issues, etc!
 
 **For new contributors** there are a whole set of issues labelled with [help wanted](https://github.com/svanoort/pyresttest/labels/help%20wanted) which are excellent starting points to offer a contribution! 
 
-For instructions on how to set up a dev environment for PyRestTest, see [building.md](building.md).
+For instructions on how to set up a dev environment for PyRestTest, see [building.md](docs/building.md).
 
 **For pull requests to get easily merged, please:**
 - Include unit tests (and functional tests, as appropriate) and verify that run_tests.sh passes
@@ -419,7 +419,7 @@ Bear in mind that this is largely a one-man, outside-of-working-hours effort at 
 ## Why not pure-python tests?
 - This is written for an environment where Python is not the sole or primary language
 - **You totally can do pure-Python tests if you want!**  
-    - [Extensions](extensions.md) provide a stable API for adding more complex functionality in python
+    - [Extensions](docs/extensions.md) provide a stable API for adding more complex functionality in python
     - All modules can be imported and used as libraries
     - Gotcha: the project is still young, so internal implementation may change often, much more than YAML features
 
