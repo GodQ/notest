@@ -36,6 +36,16 @@ def post_token():
     return json.dumps(res), 201
 
 
+@app.route('/clear_all', methods=['POST'])
+def clear_all():
+    global token
+    token = str(time.time())
+    tasks.clear()
+    res = {"status": "Cleared"}
+    print(res)
+    return json.dumps(res), 204
+
+
 @app.route('/get_form_response', methods=['GET'])
 def get_form_response():
     return "param1=1&param2=2", 200

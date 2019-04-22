@@ -23,7 +23,7 @@ except:
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 libcurl_dir = os.path.join(base_dir, "..", "tools", "libcurl_win64")
-print(libcurl_dir)
+
 if sys.platform.find("win") > -1:
     sys.path.append(libcurl_dir)
 
@@ -87,6 +87,8 @@ logging.basicConfig(format='%(levelname)s:%(message)s')
 logger = logging.getLogger('pyresttest')
 
 DIR_LOCK = threading.RLock()  # Guards operations changing the working directory
+
+
 class cd:
     """Context manager for changing the current working directory"""
     # http://stackoverflow.com/questions/431684/how-do-i-cd-in-python/13197763#13197763
@@ -223,7 +225,7 @@ def parse_testsets(base_url, test_structure, test_files=set(), working_directory
     This returns a list of testsets, corresponding to imported testsets and in-line multi-document sets
     """
 
-    tests_out = list()
+    tests_list = list()
     test_config = TestConfig()
     testsets = list()
     benchmarks = list()
@@ -254,12 +256,12 @@ def parse_testsets(base_url, test_structure, test_files=set(), working_directory
                     val = node[key]
                     assert isinstance(val, basestring)
                     mytest.url = base_url + val
-                    tests_out.append(mytest)
+                    tests_list.append(mytest)
                 elif key == u'test':  # Complex test with additional parameters
                     with cd(working_directory):
                         child = node[key]
                         mytest = Test.parse_test(base_url, child)
-                        tests_out.append(mytest)
+                        tests_list.append(mytest)
                 elif key == u'benchmark':
                     benchmark = parse_benchmark(base_url, node[key])
                     benchmarks.append(benchmark)
@@ -267,7 +269,7 @@ def parse_testsets(base_url, test_structure, test_files=set(), working_directory
                     test_config = parse_configuration(
                         node[key], base_config=test_config)
     testset = TestSet()
-    testset.tests = tests_out
+    testset.tests = tests_list
     testset.config = test_config
     testset.benchmarks = benchmarks
     testsets.append(testset)
@@ -799,6 +801,7 @@ try:
 except ImportError as ie:
     logging.debug(
         "Failed to load jmespath extractor, make sure the jmespath module is installed if you wish to use jmespath extractor.")
+
 
 def main(args):
     """
