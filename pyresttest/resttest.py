@@ -365,9 +365,27 @@ def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, 
         HttpClient.close_handler(http_handler)
         return result
 
-    # Retrieve values
+    # Retrieve Body
     result.body = http_response.body
-    result.response_headers = text_type(http_response.headers, HEADER_ENCODING)  # Per RFC 2616
+
+    # Retrieve Headers
+    headers = http_response.headers
+    if headers and not isinstance(headers, list):
+        headers = text_type(headers, HEADER_ENCODING)  # Per RFC 2616
+        # Parse HTTP headers
+        try:
+            result.response_headers = parse_headers(headers)
+        except Exception as e:
+            trace = traceback.format_exc()
+            error = "Header parsing exception: {} {}".format(e, headers)
+            result.failures.append(
+                Failure(
+                    message=error,
+                    details=trace,
+                    failure_type=validators.FAILURE_TEST_EXCEPTION))
+            result.passed = False
+            return result
+    result.response_headers = headers
     response_code = http_response.status_code
     result.response_code = response_code
 
@@ -384,20 +402,12 @@ def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, 
         result.failures.append(Failure(
             message=failure_message, details=None, failure_type=validators.FAILURE_INVALID_RESPONSE))
 
-    # Parse HTTP headers
-    try:
-        result.response_headers = parse_headers(result.response_headers)
-    except Exception as e:
-        trace = traceback.format_exc()
-        result.failures.append(Failure(message="Header parsing exception: {0}".format(
-            e), details=trace, failure_type=validators.FAILURE_TEST_EXCEPTION))
-        result.passed = False
-        return result
+
 
     # print str(test_config.print_bodies) + ',' + str(not result.passed) + ' ,
     # ' + str(test_config.print_bodies or not result.passed)
 
-    head = result.response_headers
+    headers = result.response_headers
 
     # execute validator on body
     if result.passed is True:
@@ -408,7 +418,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, 
             failures = result.failures
             for validator in mytest.validators:
                 validate_result = validator.validate(
-                    body=body, headers=head, context=my_context)
+                    body=body, headers=headers, context=my_context)
                 if not validate_result:
                     result.passed = False
                 # Proxy for checking if it is a Failure object, because of
@@ -420,19 +430,25 @@ def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, 
             logger.debug("no validators found")
 
         # Only do context updates if test was successful
-        mytest.update_context_after(result.body, head, my_context)
+        mytest.update_context_after(result.body, headers, my_context)
 
     # Print response body if override is set to print all *OR* if test failed
     # (to capture maybe a stack trace)
     if test_config.print_bodies or not result.passed:
         if test_config.interactive:
             print("RESPONSE:")
-        print(result.body.decode(ESCAPE_DECODING))
+        if result.body:
+            print(result.body.decode(ESCAPE_DECODING))
+        # else:
+        #     print("None")
 
     if test_config.print_headers or not result.passed:
         if test_config.interactive:
             print("RESPONSE HEADERS:")
-        print(result.response_headers)
+        if result.response_headers:
+            print(result.response_headers)
+        # else:
+        #     print("None")
 
     # TODO add string escape on body output
     logger.debug(result)
@@ -658,8 +674,14 @@ def run_testsets(testsets):
 
             if not result.passed:  # Print failure, increase failure counts for that test group
                 # Use result test URL to allow for templating
-                logger.error('Test Failed: ' + test.name + " URL=" + result.test.url +
-                             " Group=" + test.group + " HTTP Status Code: " + str(result.response_code))
+                error_info = list()
+                error_info.append("")
+                error_info.append(' Test Failed: ' + test.name)
+                error_info.append(" URL=" + result.test.url)
+                error_info.append(" Group=" + test.group)
+                error_info.append(" HTTP Status Code: " + str(result.response_code))
+                error_info.append("")
+                logger.error("\n".join(error_info))
 
                 # Print test failure reasons
                 if result.failures:
@@ -674,8 +696,14 @@ def run_testsets(testsets):
                 group_failure_counts[test.group] = failures
 
             else:  # Test passed, print results
-                logger.info('Test Succeeded: ' + test.name +
-                            " URL=" + test.url + " Group=" + test.group)
+                msg = list()
+                msg.append("")
+                msg.append('Test Succeeded: ' + test.name)
+                msg.append(" URL=" + result.test.url)
+                msg.append(" Group=" + test.group)
+                msg.append(" HTTP Status Code: " + str(result.response_code))
+                msg.append("")
+                logger.info("\n".join(msg))
 
             # Add results for this test group to the resultset
             group_results[test.group].append(result)

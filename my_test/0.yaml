@@ -1,0 +1,12 @@
+---
+- config:
+    - testset: "Quickstart app tests"
+
+- test:
+    - group: "Quickstart"
+    - name: "Basic get"
+    - headers: {'Content-Type': 'application/json', "Token": 123}
+    - url: "/tasks"
+    - auth_username: "foobar"
+    - auth_password: "secret"
+
