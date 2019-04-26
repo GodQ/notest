@@ -3,3 +3,4 @@ pycurl
 future 
 jmespath 
 jsonschema
+requests

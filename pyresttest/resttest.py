@@ -13,6 +13,8 @@ from optparse import OptionParser
 from email import message_from_string  # For headers handling
 import time
 
+from pyresttest.clients.http_client import HttpClient
+
 try:
     from cStringIO import StringIO as MyIO
 except:
@@ -21,11 +23,6 @@ except:
     except ImportError:
         from io import BytesIO as MyIO
 
-base_dir = os.path.abspath(os.path.dirname(__file__))
-libcurl_dir = os.path.join(base_dir, "..", "tools", "libcurl_win64")
-
-if sys.platform.find("win") > -1:
-    sys.path.append(libcurl_dir)
 
 ESCAPE_DECODING = 'string-escape'
 # Python 3 compatibility
@@ -314,7 +311,7 @@ def read_file(path):
     return string
 
 
-def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *args, **kwargs):
+def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, *args, **kwargs):
     """ Put together test pieces: configure & run actual test, return results """
 
     # Initialize a context if not supplied
@@ -324,25 +321,9 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
 
     mytest.update_context_before(my_context)
     templated_test = mytest.realize(my_context)
-    curl = templated_test.configure_curl(
-        timeout=test_config.timeout, context=my_context, curl_handle=curl_handle)
+
     result = TestResponse()
     result.test = templated_test
-
-    # reset the body, it holds values from previous runs otherwise
-    headers = MyIO()
-    body = MyIO()
-    if sys.platform.find("win") > -1:
-        curl.setopt(pycurl.CAINFO,
-                 os.path.join(libcurl_dir, "curl-ca-bundle.crt"))
-    curl.setopt(pycurl.WRITEFUNCTION, body.write)
-    curl.setopt(pycurl.HEADERFUNCTION, headers.write)
-    if test_config.verbose:
-        curl.setopt(pycurl.VERBOSE, True)
-    if test_config.ssl_insecure:
-        curl.setopt(pycurl.SSL_VERIFYPEER, 0)
-        curl.setopt(pycurl.SSL_VERIFYHOST, 0)
-
     result.passed = None
 
     if test_config.interactive:
@@ -355,7 +336,6 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
         print("%s" % (templated_test.headers))
         if mytest.body is not None:
             print("\n%s" % templated_test.body)
-        
 
         if sys.version_info >= (3,0):
             input("Press ENTER when ready (%d): " % (mytest.delay))
@@ -366,8 +346,15 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
         print("Delaying for %ds" % mytest.delay)
         time.sleep(mytest.delay)
 
+    # send request
     try:
-        curl.perform()  # Run the actual call
+        http_response = templated_test.send_request(
+            timeout=test_config.timeout,
+            context=my_context,
+            handler=http_handler,
+            ssl_insecure=test_config.ssl_insecure,
+            verbose=test_config.verbose
+        )
     except Exception as e:
         # Curl exception occurred (network error), do not pass go, do not
         # collect $200
@@ -375,16 +362,13 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
         result.failures.append(Failure(message="Curl Exception: {0}".format(
             e), details=trace, failure_type=validators.FAILURE_CURL_EXCEPTION))
         result.passed = False
-        curl.close()
+        HttpClient.close_handler(http_handler)
         return result
 
     # Retrieve values
-    result.body = body.getvalue()
-    body.close()
-    result.response_headers = text_type(headers.getvalue(), HEADER_ENCODING)  # Per RFC 2616
-    headers.close()
-
-    response_code = curl.getinfo(pycurl.RESPONSE_CODE)
+    result.body = http_response.body
+    result.response_headers = text_type(http_response.headers, HEADER_ENCODING)  # Per RFC 2616
+    response_code = http_response.status_code
     result.response_code = response_code
 
     logger.debug("Initial Test Result, based on expected response code: " +
@@ -408,7 +392,6 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
         result.failures.append(Failure(message="Header parsing exception: {0}".format(
             e), details=trace, failure_type=validators.FAILURE_TEST_EXCEPTION))
         result.passed = False
-        curl.close()
         return result
 
     # print str(test_config.print_bodies) + ',' + str(not result.passed) + ' ,
@@ -670,7 +653,7 @@ def run_testsets(testsets):
                 group_results[test.group] = list()
                 group_failure_counts[test.group] = 0
 
-            result = run_test(test, test_config=myconfig, context=context, curl_handle=curl_handle)
+            result = run_test(test, test_config=myconfig, context=context, http_handler=curl_handle)
             result.body = None  # Remove the body, save some memory!
 
             if not result.passed:  # Print failure, increase failure counts for that test group
