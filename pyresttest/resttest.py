@@ -14,6 +14,7 @@ from email import message_from_string  # For headers handling
 import time
 
 from pyresttest.clients.http_client import HttpClient
+from pyresttest.plugin_registery import register_extensions
 
 try:
     from cStringIO import StringIO as MyIO
@@ -23,29 +24,31 @@ except:
     except ImportError:
         from io import BytesIO as MyIO
 
-
 ESCAPE_DECODING = 'string-escape'
 # Python 3 compatibility
 if sys.version_info[0] > 2:
     from past.builtins import basestring
     from builtins import range as xrange
+
     ESCAPE_DECODING = 'unicode_escape'
 
 # Dirty hack to allow for running this as a script :-/
 if __name__ == '__main__':
     sys.path.append(os.path.dirname(os.path.dirname(
-    os.path.realpath(__file__))))
+        os.path.realpath(__file__))))
     from pyresttest.six import text_type
     from pyresttest.binding import Context
     from pyresttest import generators
     from pyresttest import validators
     from pyresttest import tests
     from pyresttest.generators import parse_generator
-    from pyresttest.parsing import flatten_dictionaries, lowercase_keys, safe_to_bool, safe_to_json
+    from pyresttest.parsing import flatten_dictionaries, lowercase_keys, \
+        safe_to_bool, safe_to_json
 
     from pyresttest.validators import Failure
     from pyresttest.tests import Test, DEFAULT_TIMEOUT
-    from pyresttest.benchmarks import Benchmark, AGGREGATES, METRICS, parse_benchmark
+    from pyresttest.benchmarks import Benchmark, AGGREGATES, METRICS, \
+        parse_benchmark
 else:  # Normal imports
     from . import six
     from .six import text_type
@@ -56,7 +59,8 @@ else:  # Normal imports
     from . import generators
     from .generators import parse_generator
     from . import parsing
-    from .parsing import flatten_dictionaries, lowercase_keys, safe_to_bool, safe_to_json
+    from .parsing import flatten_dictionaries, lowercase_keys, safe_to_bool, \
+        safe_to_json
     from . import validators
     from .validators import Failure
     from . import tests
@@ -73,7 +77,7 @@ Module responsibilities:
 - Collect and report on test/benchmark results
 - Perform analysis on benchmark results
 """
-HEADER_ENCODING ='ISO-8859-1' # Per RFC 2616
+HEADER_ENCODING = 'ISO-8859-1'  # Per RFC 2616
 LOGGING_LEVELS = {'debug': logging.DEBUG,
                   'info': logging.INFO,
                   'warning': logging.WARNING,
@@ -88,6 +92,7 @@ DIR_LOCK = threading.RLock()  # Guards operations changing the working directory
 
 class cd:
     """Context manager for changing the current working directory"""
+
     # http://stackoverflow.com/questions/431684/how-do-i-cd-in-python/13197763#13197763
 
     def __init__(self, newPath):
@@ -198,17 +203,19 @@ def parse_headers(header_string):
         return list()
 
     # Python 2.6 message header parsing fails for Unicode strings, 2.7 is fine. Go figure.
-    if sys.version_info < (2,7):
+    if sys.version_info < (2, 7):
         header_msg = message_from_string(headers.encode(HEADER_ENCODING))
-        return [(text_type(k.lower(), HEADER_ENCODING), text_type(v, HEADER_ENCODING))
-            for k, v in header_msg.items()]
+        return [(text_type(k.lower(), HEADER_ENCODING),
+                 text_type(v, HEADER_ENCODING))
+                for k, v in header_msg.items()]
     else:
         header_msg = message_from_string(headers)
         # Note: HTTP headers are *case-insensitive* per RFC 2616
         return [(k.lower(), v) for k, v in header_msg.items()]
 
 
-def parse_testsets(base_url, test_structure, test_files=set(), working_directory=None, vars=None):
+def parse_testsets(base_url, test_structure, test_files=set(),
+                   working_directory=None, vars=None):
     """ Convert a Python data structure read from validated YAML to a set of structured testsets
     The data structure is assumed to be a list of dictionaries, each of which describes:
         - a tests (test structure)
@@ -235,7 +242,8 @@ def parse_testsets(base_url, test_structure, test_files=set(), working_directory
 
     # returns a testconfig and collection of tests
     for node in test_structure:  # Iterate through lists of test and configuration elements
-        if isinstance(node, dict):  # Each config element is a miniature key-value dictionary
+        if isinstance(node,
+                      dict):  # Each config element is a miniature key-value dictionary
             node = lowercase_keys(node)
             for key in node:
                 if key == u'import':
@@ -244,9 +252,11 @@ def parse_testsets(base_url, test_structure, test_files=set(), working_directory
                         logger.debug("Importing test sets: " + importfile)
                         test_files.add(importfile)
                         import_test_structure = read_test_file(importfile)
-                        with cd(os.path.dirname(os.path.realpath(importfile))):
+                        with cd(os.path.dirname(
+                                os.path.realpath(importfile))):
                             import_testsets = parse_testsets(
-                                base_url, import_test_structure, test_files, vars=vars)
+                                base_url, import_test_structure, test_files,
+                                vars=vars)
                             testsets.extend(import_testsets)
                 elif key == u'url':  # Simple test, just a GET to a URL
                     mytest = Test()
@@ -311,7 +321,8 @@ def read_file(path):
     return string
 
 
-def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, *args, **kwargs):
+def run_test(mytest, test_config=TestConfig(), context=None,
+             http_handler=None, *args, **kwargs):
     """ Put together test pieces: configure & run actual test, return results """
 
     # Initialize a context if not supplied
@@ -337,7 +348,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, 
         if mytest.body is not None:
             print("\n%s" % templated_test.body)
 
-        if sys.version_info >= (3,0):
+        if sys.version_info >= (3, 0):
             input("Press ENTER when ready (%d): " % (mytest.delay))
         else:
             raw_input("Press ENTER when ready (%d): " % (mytest.delay))
@@ -360,7 +371,8 @@ def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, 
         # collect $200
         trace = traceback.format_exc()
         result.failures.append(Failure(message="Curl Exception: {0}".format(
-            e), details=trace, failure_type=validators.FAILURE_CURL_EXCEPTION))
+            e), details=trace,
+            failure_type=validators.FAILURE_CURL_EXCEPTION))
         result.passed = False
         HttpClient.close_handler(http_handler)
         return result
@@ -400,9 +412,8 @@ def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, 
         failure_message = "Invalid HTTP response code: response code {0} not in expected codes [{1}]".format(
             response_code, mytest.expected_status)
         result.failures.append(Failure(
-            message=failure_message, details=None, failure_type=validators.FAILURE_INVALID_RESPONSE))
-
-
+            message=failure_message, details=None,
+            failure_type=validators.FAILURE_INVALID_RESPONSE))
 
     # print str(test_config.print_bodies) + ',' + str(not result.passed) + ' ,
     # ' + str(test_config.print_bodies or not result.passed)
@@ -412,7 +423,8 @@ def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, 
     # execute validator on body
     if result.passed is True:
         body = result.body
-        if mytest.validators is not None and isinstance(mytest.validators, list):
+        if mytest.validators is not None and isinstance(mytest.validators,
+                                                        list):
             logger.debug("executing this many validators: " +
                          str(len(mytest.validators)))
             failures = result.failures
@@ -456,7 +468,8 @@ def run_test(mytest, test_config=TestConfig(), context=None, http_handler=None, 
     return result
 
 
-def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kwargs):
+def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args,
+                  **kwargs):
     """ Perform a benchmark, (re)using a given, configured CURL call to do so
         The actual analysis of metrics is performed separately, to allow for testing
     """
@@ -501,7 +514,8 @@ def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kw
         benchmark.update_context_before(my_context)
         templated = benchmark.realize(my_context)
         curl = templated.configure_curl(
-            timeout=test_config.timeout, context=my_context, curl_handle=curl)
+            timeout=test_config.timeout, context=my_context,
+            curl_handle=curl)
         # Do not store actual response body at all.
         curl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
         curl.perform()
@@ -515,7 +529,8 @@ def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kw
         benchmark.update_context_before(my_context)
         templated = benchmark.realize(my_context)
         curl = templated.configure_curl(
-            timeout=test_config.timeout, context=my_context, curl_handle=curl)
+            timeout=test_config.timeout, context=my_context,
+            curl_handle=curl)
         # Do not store actual response body at all.
         curl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
 
@@ -566,7 +581,8 @@ def analyze_benchmark_results(benchmark_result, benchmark):
             if numbers:  # Only compute aggregates if numbers exist
                 aggregate_function = AGGREGATES[aggregate_name]
                 aggregate_results.append(
-                    (metricname, aggregate_name, aggregate_function(numbers)))
+                    (metricname, aggregate_name,
+                     aggregate_function(numbers)))
             else:
                 aggregate_results.append((metricname, aggregate_name, None))
 
@@ -596,17 +612,20 @@ def metrics_to_tuples(raw_metrics):
 
     # Create list of tuples mimicking 2D array from input
     for row in xrange(0, num_rows):
-        new_row = tuple([arrays[col][row] for col in xrange(0, len(arrays))])
+        new_row = tuple(
+            [arrays[col][row] for col in xrange(0, len(arrays))])
         output.append(new_row)
     return output
 
 
-def write_benchmark_json(file_out, benchmark_result, benchmark, test_config=TestConfig()):
+def write_benchmark_json(file_out, benchmark_result, benchmark,
+                         test_config=TestConfig()):
     """ Writes benchmark to file as json """
     json.dump(benchmark_result, file_out, default=safe_to_json)
 
 
-def write_benchmark_csv(file_out, benchmark_result, benchmark, test_config=TestConfig()):
+def write_benchmark_csv(file_out, benchmark_result, benchmark,
+                        test_config=TestConfig()):
     """ Writes benchmark to file as csv """
     writer = csv.writer(file_out)
     writer.writerow(('Benchmark', benchmark_result.name))
@@ -621,8 +640,10 @@ def write_benchmark_csv(file_out, benchmark_result, benchmark, test_config=TestC
         writer.writerow(('Aggregates', ''))
         writer.writerows(benchmark_result.aggregates)
 
+
 # Method to call when writing benchmark file
-OUTPUT_METHODS = {u'csv': write_benchmark_csv, u'json': write_benchmark_json}
+OUTPUT_METHODS = {u'csv': write_benchmark_csv,
+                  u'json': write_benchmark_json}
 
 
 def log_failure(failure, context=None, test_config=TestConfig()):
@@ -669,7 +690,8 @@ def run_testsets(testsets):
                 group_results[test.group] = list()
                 group_failure_counts[test.group] = 0
 
-            result = run_test(test, test_config=myconfig, context=context, http_handler=curl_handle)
+            result = run_test(test, test_config=myconfig, context=context,
+                              http_handler=curl_handle)
             result.body = None  # Remove the body, save some memory!
 
             if not result.passed:  # Print failure, increase failure counts for that test group
@@ -679,7 +701,8 @@ def run_testsets(testsets):
                 error_info.append(' Test Failed: ' + test.name)
                 error_info.append(" URL=" + result.test.url)
                 error_info.append(" Group=" + test.group)
-                error_info.append(" HTTP Status Code: " + str(result.response_code))
+                error_info.append(
+                    " HTTP Status Code: " + str(result.response_code))
                 error_info.append("")
                 logger.error("\n".join(error_info))
 
@@ -701,7 +724,8 @@ def run_testsets(testsets):
                 msg.append('Test Succeeded: ' + test.name)
                 msg.append(" URL=" + result.test.url)
                 msg.append(" Group=" + test.group)
-                msg.append(" HTTP Status Code: " + str(result.response_code))
+                msg.append(
+                    " HTTP Status Code: " + str(result.response_code))
                 msg.append("")
                 logger.info("\n".join(msg))
 
@@ -731,7 +755,8 @@ def run_testsets(testsets):
                 logger.debug(
                     'Writing benchmark to file in format: ' + benchmark.output_format)
                 write_method = OUTPUT_METHODS[benchmark.output_format]
-                my_file = open(benchmark.output_file, 'w')  # Overwrites file
+                my_file = open(benchmark.output_file,
+                               'w')  # Overwrites file
                 logger.debug("Benchmark writing to file: " +
                              benchmark.output_file)
                 write_method(my_file, benchmark_result,
@@ -749,10 +774,12 @@ def run_testsets(testsets):
         total_failures = total_failures + failures
 
         passfail = {True: u'SUCCEEDED: ', False: u'FAILED: '}
-        output_string = "Test Group {0} {1}: {2}/{3} Tests Passed!".format(group, passfail[failures == 0], str(test_count - failures), str(test_count)) 
-        
+        output_string = "Test Group {0} {1}: {2}/{3} Tests Passed!".format(
+            group, passfail[failures == 0], str(test_count - failures),
+            str(test_count))
+
         if myconfig.skip_term_colors:
-            print(output_string)    
+            print(output_string)
         else:
             if failures > 0:
                 print('\033[91m' + output_string + '\033[0m')
@@ -760,58 +787,6 @@ def run_testsets(testsets):
                 print('\033[92m' + output_string + '\033[0m')
 
     return total_failures
-
-
-def register_extensions(modules):
-    """ Import the modules and register their respective extensions """
-    if isinstance(modules, basestring):  # Catch supplying just a string arg
-        modules = [modules]
-    for ext in modules:
-        # Get the package prefix and final module name
-        segments = ext.split('.')
-        module = segments.pop()
-        package = '.'.join(segments)
-        # Necessary to get the root module back
-        module = __import__(ext, globals(), locals(), package)
-
-        # Extensions are registered by applying a register function to sets of
-        # registry name/function pairs inside an object
-        extension_applies = {
-            'VALIDATORS': validators.register_validator,
-            'COMPARATORS': validators.register_comparator,
-            'VALIDATOR_TESTS': validators.register_test,
-            'EXTRACTORS': validators.register_extractor,
-            'GENERATORS': generators.register_generator
-        }
-
-        has_registry = False
-        for registry_name, register_function in extension_applies.items():
-            if hasattr(module, registry_name):
-                registry = getattr(module, registry_name)
-                for key, val in registry.items():
-                    register_function(key, val)
-                if registry:
-                    has_registry = True
-
-        if not has_registry:
-            raise ImportError(
-                "Extension to register did not contain any registries: {0}".format(ext))
-
-# AUTOIMPORTS, these should run just before the main method, to ensure
-# everything else is loaded
-try:
-    import jsonschema
-    register_extensions('pyresttest.ext.validator_jsonschema')
-except ImportError as ie:
-    logging.debug(
-        "Failed to load jsonschema validator, make sure the jsonschema module is installed if you wish to use schema validators.")
-
-try:
-    import jmespath
-    register_extensions('pyresttest.ext.extractor_jmespath')
-except ImportError as ie:
-    logging.debug(
-        "Failed to load jmespath extractor, make sure the jmespath module is installed if you wish to use jmespath extractor.")
 
 
 def main(args):
@@ -858,14 +833,17 @@ def main(args):
         base_url = ''
 
     tests = parse_testsets(base_url, test_structure,
-                           working_directory=os.path.dirname(test_file), vars=my_vars)
+                           working_directory=os.path.dirname(test_file),
+                           vars=my_vars)
 
     # Override configs from command line if config set
     for t in tests:
-        if 'print_bodies' in args and args['print_bodies'] is not None and bool(args['print_bodies']):
+        if 'print_bodies' in args and args[
+            'print_bodies'] is not None and bool(args['print_bodies']):
             t.config.print_bodies = safe_to_bool(args['print_bodies'])
 
-        if 'print_headers' in args and args['print_headers'] is not None and bool(args['print_headers']):
+        if 'print_headers' in args and args[
+            'print_headers'] is not None and bool(args['print_headers']):
             t.config.print_headers = safe_to_bool(args['print_headers'])
 
         if 'interactive' in args and args['interactive'] is not None:
@@ -877,8 +855,10 @@ def main(args):
         if 'ssl_insecure' in args and args['ssl_insecure'] is not None:
             t.config.ssl_insecure = safe_to_bool(args['ssl_insecure'])
 
-        if 'skip_term_colors' in args and args['skip_term_colors'] is not None:
-            t.config.skip_term_colors = safe_to_bool(args['skip_term_colors'])
+        if 'skip_term_colors' in args and args[
+            'skip_term_colors'] is not None:
+            t.config.skip_term_colors = safe_to_bool(
+                args['skip_term_colors'])
 
     # Execute all testsets
     failures = run_testsets(tests)
@@ -899,21 +879,30 @@ def parse_command_line_args(args_in):
     parser.add_option(u"--interactive", help="Interactive mode",
                       action="store", type="string")
     parser.add_option(
-        u"--url", help="Base URL to run tests against", action="store", type="string")
+        u"--url", help="Base URL to run tests against", action="store",
+        type="string")
     parser.add_option(u"--test", help="Test file to use",
                       action="store", type="string")
     parser.add_option(u'--import_extensions',
-                      help='Extensions to import, separated by semicolons', action="store", type="string")
+                      help='Extensions to import, separated by semicolons',
+                      action="store", type="string")
     parser.add_option(
-        u'--vars', help='Variables to set, as a YAML dictionary', action="store", type="string")
-    parser.add_option(u'--verbose', help='Put cURL into verbose mode for extra debugging power',
+        u'--vars', help='Variables to set, as a YAML dictionary',
+        action="store", type="string")
+    parser.add_option(u'--verbose',
+                      help='Put cURL into verbose mode for extra debugging power',
                       action='store_true', default=False, dest="verbose")
-    parser.add_option(u'--ssl-insecure', help='Disable cURL host and peer cert verification',
-                      action='store_true', default=False, dest="ssl_insecure")
-    parser.add_option(u'--absolute-urls', help='Enable absolute URLs in tests instead of relative paths',
+    parser.add_option(u'--ssl-insecure',
+                      help='Disable cURL host and peer cert verification',
+                      action='store_true', default=False,
+                      dest="ssl_insecure")
+    parser.add_option(u'--absolute-urls',
+                      help='Enable absolute URLs in tests instead of relative paths',
                       action="store_true", dest="absolute_urls")
-    parser.add_option(u'--skip_term_colors', help='Turn off the output term colors',
-                      action='store_true', default=False, dest="skip_term_colors")
+    parser.add_option(u'--skip_term_colors',
+                      help='Turn off the output term colors',
+                      action='store_true', default=False,
+                      dest="skip_term_colors")
 
     (args, unparsed_args) = parser.parse_args(args_in)
     args = vars(args)
@@ -941,6 +930,7 @@ def command_line_run(args_in):
     args = parse_command_line_args(args_in)
     main(args)
 
+
 # Allow import into another module without executing the main method
-if(__name__ == '__main__'):
+if (__name__ == '__main__'):
     command_line_run(sys.argv[1:])
