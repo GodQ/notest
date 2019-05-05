@@ -1,0 +1,53 @@
+
+---
+- config:
+    - testset: "Quickstart app tests"
+    - variable_binds:
+        task_id: 1
+        title: 'Gaius-Test'
+        done: 'true'
+    # Generators to use in the test set
+    - generators:
+        # Generator named 'id' that counts up from 10
+        - 'id': {type: 'number_sequence', start: 10}
+
+#- test:
+#    - generator_binds:
+#        - task_id: id
+#    - group: "Quickstart"
+#    - name: "post"
+#    - url: "/tasks"
+#    - method: "POST"
+#    - headers: {'Content-Type': 'application/json', "Token": 123}
+#    - body: {template: '{"title": "$title", "id": $task_id, "done": $done}'}
+#    - expected_status: [201]
+#    - validators:
+#        # Test key does not exist
+#        - extract_test: {jsonpath_mini: "info.0.title", test: "exists"}
+#        - compare:
+#            - jsonpath_mini: "info.0.id"
+#            - comparator: "str_eq"
+#            - expected: {template: '$task_id'}
+#    - extract_binds:
+#        - post_task_id: {jsonpath_mini: 'info.0.id'}
+
+- test:
+    - group: "Quickstart"
+    - name: "get"
+    - headers: {'Content-Type': 'application/text', "Token": 123}
+    - body: {template: '{"title": "$title", "id": $task_id, "done": $done}'}
+    - url: {template: "/task/1"}
+    - method: "GET"
+    - expected_status: [200]
+    - extract_binds:
+         - post_task_id: {jsonpath_mini: 'info.0.id'}
+         - task_title:
+            mysql:
+              sql: 'select * from sites'
+              config: {
+                  'user': 'root',
+                  'password': 'password',
+                  'host': '192.168.99.101',
+                  'database': 'test'
+                }
+

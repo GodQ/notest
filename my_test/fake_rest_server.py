@@ -156,6 +156,7 @@ def tasks_operations():
 def task_operations(task_id):
     print("Parameters: ", request.args)
     print("Headers: ", request.headers)
+    print("Body: ", request.data)
     global tasks, token
 
     token_t = request.headers.get('Token', None)
