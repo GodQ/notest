@@ -1,4 +1,4 @@
-from pyresttest.import_base import *
+# from pyresttest.import_base import *
 import requests
 import json
 
@@ -9,17 +9,6 @@ from .http_response import HttpResponse
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
 DEFAULT_TIMEOUT = 10  # Seconds
-# Map HTTP method names to curl methods
-# Kind of obnoxious that it works this way...
-HTTP_METHODS = {u'GET': pycurl.HTTPGET,
-                u'PUT': pycurl.UPLOAD,
-                u'PATCH': pycurl.POSTFIELDS,
-                u'POST': pycurl.POST,
-                u'DELETE': 'DELETE'}
-
-HttpAuthType_Map = {
-    HttpAuthType.HTTP_AUTH_BASIC: pycurl.HTTPAUTH_BASIC
-}
 
 
 class RequestsClient:
@@ -69,23 +58,22 @@ class RequestsClient:
             request_obj.auth = {test_obj.auth_username, test_obj.auth_password}
 
             if test_obj.auth_type:
-                auth_type = HttpAuthType_Map[test_obj.auth_type]
                 pass
 
         head = test_obj.get_headers(context=context)
         headers = {k.lower(): v for k, v in head.items()}
         # Set charset if doing unicode conversion and not set explicitly
-        body = test_obj.body
+        body = test_obj.http_body
         body_type = "data"
-        if isinstance(body, text_type):  # Encode unicode
-            body = body.encode('UTF-8')
-            if u'content-type' in headers.keys():
-                content = headers[u'content-type']
-                if u'json' in content:
+        if isinstance(body, str):  # Encode unicode
+            # body = body.encode('UTF-8')
+            if 'content-type' in headers.keys():
+                content = headers['content-type']
+                if 'json' in content:
                     body = json.loads(body)
                     body_type = "json"
-                if u'charset' not in content:
-                    headers[u'content-type'] = content + u' ; charset=UTF-8'
+                if 'charset' not in content:
+                    headers['content-type'] = content + ' ; charset=UTF-8'
 
         if body_type == "json":
             request_obj.prepare_body(data=None, files=None, json=body)

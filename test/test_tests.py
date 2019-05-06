@@ -66,7 +66,7 @@ class TestsTest(unittest.TestCase):
     def test_parse_curloption(self):
         """ Verify issue with curloption handling from https://github.com/svanoort/pyresttest/issues/138 """
         testdefinition = {"url": "/ping", "curl_option_timeout": 14, 'curl_Option_interface': 'doesnotexist'}
-        test = Test.parse_test('', testdefinition)
+        test = Test.init_test('', testdefinition)
         print(test.curl_options)
         self.assertTrue('TIMEOUT' in test.curl_options)
         self.assertTrue('INTERFACE' in test.curl_options)
@@ -76,7 +76,7 @@ class TestsTest(unittest.TestCase):
     def test_parse_illegalcurloption(self):
         testdefinition = {"url": "/ping", 'curl_Option_special': 'value'}
         try:
-            test = Test.parse_test('', testdefinition)
+            test = Test.init_test('', testdefinition)
             fail("Error: test parsing should fail when given illegal curl option")
         except ValueError:
             pass
@@ -86,7 +86,7 @@ class TestsTest(unittest.TestCase):
         # Most basic case
         myinput = {"url": "/ping", "method": "DELETE", "NAME": "foo", "group": "bar",
                  "body": "<xml>input</xml>", "headers": {"Accept": "Application/json"}}
-        test = Test.parse_test('', myinput)
+        test = Test.init_test('', myinput)
         self.assertEqual(test.url,  myinput['url'])
         self.assertEqual(test.method, myinput['method'])
         self.assertEqual(test.name, myinput['NAME'])
@@ -99,7 +99,7 @@ class TestsTest(unittest.TestCase):
         # Happy path, only gotcha is that it's a POST, so must accept 200 or
         # 204 response code
         myinput = {"url": "/ping", "meThod": "POST"}
-        test = Test.parse_test('', myinput)
+        test = Test.init_test('', myinput)
         self.assertEqual(test.url, myinput['url'])
         self.assertEqual(test.method, myinput['meThod'])
         self.assertEqual(test.expected_status, [200, 201, 204])
@@ -107,7 +107,7 @@ class TestsTest(unittest.TestCase):
         # Authentication
         myinput = {"url": "/ping", "method": "GET",
                  "auth_username": "foo", "auth_password": "bar"}
-        test = Test.parse_test('', myinput)
+        test = Test.init_test('', myinput)
         self.assertEqual('foo', myinput['auth_username'])
         self.assertEqual('bar', myinput['auth_password'])
         self.assertEqual(test.expected_status, [200])
@@ -115,7 +115,7 @@ class TestsTest(unittest.TestCase):
         # Test that headers propagate
         myinput = {"url": "/ping", "method": "GET",
                  "headers": [{"Accept": "application/json"}, {"Accept-Encoding": "gzip"}]}
-        test = Test.parse_test('', myinput)
+        test = Test.init_test('', myinput)
         expected_headers = {"Accept": "application/json",
                             "Accept-Encoding": "gzip"}
 
@@ -131,7 +131,7 @@ class TestsTest(unittest.TestCase):
         # Test expected status propagates and handles conversion to integer
         myinput = [{"url": "/ping"}, {"name": "cheese"},
                  {"expected_status": ["200", 204, "202"]}]
-        test = Test.parse_test('', myinput)
+        test = Test.init_test('', myinput)
         self.assertEqual(test.name, "cheese")
         self.assertEqual(test.expected_status, [200, 204, 202])
         self.assertFalse(test.is_context_modifier())
@@ -139,19 +139,19 @@ class TestsTest(unittest.TestCase):
     def test_parse_nonstandard_http_method(self):
         myinput = {"url": "/ping", "method": "PATCH", "NAME": "foo", "group": "bar",
                    "body": "<xml>input</xml>", "headers": {"Accept": "Application/json"}}
-        test = Test.parse_test('', myinput)
+        test = Test.init_test('', myinput)
         self.assertEqual("PATCH", test.method)
 
         try:
             myinput['method'] = 1
-            test.parse_test('', myinput)
+            test.init_test('', myinput)
             fail("Should fail to pass a nonstring HTTP method")
         except TypeError:
             pass
 
         try:
             myinput['method'] = ''
-            test.parse_test('', myinput)
+            test.init_test('', myinput)
             fail("Should fail to pass a nonstring HTTP method")
         except (TypeError, AssertionError):
             pass
@@ -160,14 +160,14 @@ class TestsTest(unittest.TestCase):
         # Basic case
         myinput = {'url': '/ping', 'name': 'basic',
                    'curl_option_followLocatION': True}
-        test = Test.parse_test('', myinput)
+        test = Test.init_test('', myinput)
         options = test.curl_options
         self.assertEqual(1, len(options))
         self.assertEqual(True, options['FOLLOWLOCATION'])
 
         # Test parsing with two options
         myinput['curl_option_maxredirs'] = 99
-        test = Test.parse_test('', myinput)
+        test = Test.init_test('', myinput)
         options = test.curl_options
         self.assertEqual(2, len(options))
         self.assertEqual(True, options['FOLLOWLOCATION'])
@@ -176,7 +176,7 @@ class TestsTest(unittest.TestCase):
         # Invalid curl option
         myinput['curl_option_BOGUSOPTION'] = 'i_fail'
         try:
-            test.parse_test('', myinput)
+            test.init_test('', myinput)
             fail("Should throw an exception when invalid curl option used, but didn't!")
         except ValueError:
             pass
@@ -236,7 +236,7 @@ class TestsTest(unittest.TestCase):
         input_invalid = {"url": "/ping", "method": "DELETE", "NAME": "foo",
                          "group": "bar", "body": "<xml>input</xml>", "headers": 'goat'}
         try:
-            test = Test.parse_test('', input_invalid)
+            test = Test.init_test('', input_invalid)
             test.fail("Expected error not thrown")
         except TypeError:
             pass
@@ -248,14 +248,14 @@ class TestsTest(unittest.TestCase):
         # Before templating is used
         input = {"url": "/ping", "method": "DELETE", "NAME": "foo",
                  "group": "bar", "body": "<xml>input</xml>", "headers": heads}
-        test = Test.parse_test('', input)
+        test = Test.init_test('', input)
         assert_dict_eq(heads, test.headers)
         assert_dict_eq(heads, test.get_headers(context=context))
 
         # After templating applied
         input_templated = {"url": "/ping", "method": "DELETE", "NAME": "foo",
                            "group": "bar", "body": "<xml>input</xml>", "headers": {'tEmplate': heads}}
-        test2 = Test.parse_test('', input_templated)
+        test2 = Test.init_test('', input_templated)
         assert_dict_eq(heads, test2.get_headers())
         assert_dict_eq(templated_heads, test2.get_headers(context=context))
 
@@ -270,7 +270,7 @@ class TestsTest(unittest.TestCase):
             {'extract_test': {'jsonpath_mini': 'key.val', 'test': 'exists'}}
         ]}
 
-        test = Test.parse_test('', input)
+        test = Test.init_test('', input)
         self.assertTrue(test.validators)
         self.assertEqual(2, len(test.validators))
         self.assertTrue(isinstance(
@@ -286,7 +286,7 @@ class TestsTest(unittest.TestCase):
         """ Test an invalid validator syntax throws exception """
         input = {"url": '/test', 'validators': ['comparator']}
         try:
-            test = Test.parse_test('', input)
+            test = Test.init_test('', input)
             self.fail(
                 "Should throw exception if not giving a dictionary-type comparator")
         except TypeError:
@@ -301,7 +301,7 @@ class TestsTest(unittest.TestCase):
                 'name': {'jsonpath_mini': 'firstname'}
             }
         }
-        test = Test.parse_test('', test_config)
+        test = Test.init_test('', test_config)
         self.assertTrue(test.extract_binds)
         self.assertEqual(2, len(test.extract_binds))
         self.assertTrue('id' in test.extract_binds)
@@ -322,7 +322,7 @@ class TestsTest(unittest.TestCase):
             'extract_binds': {'id': {}}
         }
         try:
-            test = Test.parse_test('', test_config)
+            test = Test.init_test('', test_config)
             self.fail("Should throw an error when doing empty mapping")
         except TypeError:
             pass
@@ -332,7 +332,7 @@ class TestsTest(unittest.TestCase):
             'test': 'anotherquery'
         }
         try:
-            test = Test.parse_test('', test_config)
+            test = Test.init_test('', test_config)
             self.fail("Should throw an error when given multiple extractors")
         except ValueError as te:
             pass
@@ -348,7 +348,7 @@ class TestsTest(unittest.TestCase):
                                 'expected': {'template': '$id'}}}
             ]
         }
-        test = Test.parse_test('', test_config)
+        test = Test.init_test('', test_config)
         self.assertTrue(test.validators)
         self.assertEqual(1, len(test.validators))
 
@@ -370,7 +370,7 @@ class TestsTest(unittest.TestCase):
                                   'test': 'exists'}}
             ]
         }
-        test = Test.parse_test('', test_config)
+        test = Test.init_test('', test_config)
         self.assertTrue(test.validators)
         self.assertEqual(1, len(test.validators))
 
@@ -384,7 +384,7 @@ class TestsTest(unittest.TestCase):
                  {"expected_status": ["200", 204, "202"]}]
         input.append({"variable_binds": {'var': 'value'}})
 
-        test = Test.parse_test('', input)
+        test = Test.init_test('', input)
         binds = test.variable_binds
         self.assertEqual(1, len(binds))
         self.assertEqual('value', binds['var'])

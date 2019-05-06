@@ -18,11 +18,11 @@ except ImportError:  # Then try a relative import if possible
 
 def parse_mysql_query_generator(config):
     """ Parses configuration options for a mysql_query generator """
-    mysql_config = config.get(u'config')
+    mysql_config = config.get('config')
     mysql_config = templated_var(mysql_config)
     if isinstance(mysql_config, str):
         mysql_config = json.loads(mysql_config)
-    sql = config.get(u'sql')
+    sql = config.get('query')
     sql = templated_var(sql)
     try:
         with MysqlClient(mysql_config) as cli:

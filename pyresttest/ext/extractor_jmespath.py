@@ -10,12 +10,12 @@ import jmespath
 
 try:  # First try to load pyresttest from global namespace
     from pyresttest import validators
-    from pyresttest import binding
+    from pyresttest import context
     from pyresttest import parsing
     from pyresttest import contenthandling
 except ImportError:  # Then try a relative import if possible
     from .. import validators
-    from .. import binding
+    from .. import context
     from .. import parsing
     from .. import contenthandling
 

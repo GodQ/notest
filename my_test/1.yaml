@@ -4,6 +4,14 @@
 
 - test:
     - group: "Quickstart"
+    - name: "clear all"
+    - headers: {'Content-Type': 'application/json', "Token": 123}
+    - url: "/clear_all"
+    - method: "POST"
+    - expected_status: [204]
+
+- test:
+    - group: "Quickstart"
     - name: "Basic get"
     - headers: {'Content-Type': 'application/json', "Token": 123}
     - url: "/tasks"

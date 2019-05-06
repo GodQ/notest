@@ -38,6 +38,8 @@ def post_token():
 
 @app.route('/clear_all', methods=['POST'])
 def clear_all():
+    print("Parameters: ", request.args)
+    print("Headers: ", request.headers)
     global token
     token = str(time.time())
     tasks.clear()

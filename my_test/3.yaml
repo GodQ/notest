@@ -11,9 +11,9 @@
     - generators:
         # Generator named 'id' that counts up from 10
         - task_id: {type: 'number_sequence', start: 10}
-        - name:
+        - task_name:
             type: 'mysql'
-            sql: 'select name from sites'
+            query: 'select name from sites'
             config: '{"user": "root", "password": "password", "host": "192.168.99.101", "database": "test"}'
 - test:
     - group: "Quickstart"
@@ -26,7 +26,7 @@
 - test:
     - generator_binds:
         - task_id: task_id
-        - name: name
+        - name: task_name
     - group: "Quickstart"
     - name: "post"
     - url: "/tasks"
@@ -38,7 +38,7 @@
 - test:
     - generator_binds:
         - task_id: task_id
-        - name: name
+        - name: task_name
     - group: "Quickstart"
     - name: "post"
     - url: "/tasks"
@@ -57,7 +57,7 @@
         - post_task_id: {jsonpath_mini: 'info.0.id'}
         - post_task_title:
             mysql:
-              sql: 'select name from sites limit 1'
+              query: 'select name from sites limit 1'
               config: '{"user": "root", "password": "password", "host": "192.168.99.101", "database": "test"}'
 
 - test:

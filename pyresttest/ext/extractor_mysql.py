@@ -12,12 +12,12 @@ from pyresttest.lib.utils import templated_var
 
 try:  # First try to load pyresttest from global namespace
     from pyresttest import validators
-    from pyresttest import binding
+    from pyresttest import context
     from pyresttest import parsing
     from pyresttest import contenthandling
 except ImportError:  # Then try a relative import if possible
     from .. import validators
-    from .. import binding
+    from .. import context
     from .. import parsing
     from .. import contenthandling
 
@@ -29,14 +29,13 @@ class MySQLQueryExtractor(validators.AbstractExtractor):
     extractor_type = 'mysql'
 
     def __init__(self):
-        self.sql = None
+        self.query = None
         self.mysql_config = None
 
     def extract_internal(self, query=None, args=None, body=None,
                          headers=None):
-        if PYTHON_MAJOR_VERSION > 2:
-            if isinstance(query, bytes):
-                query = str(query, 'utf-8')
+        if isinstance(query, bytes):
+            query = query.decode()
 
         try:
             with MysqlClient(self.mysql_config) as cli:
@@ -53,18 +52,18 @@ class MySQLQueryExtractor(validators.AbstractExtractor):
 
     @classmethod
     def parse(cls, config):
-        mysql_config = config.get(u'config')
+        mysql_config = config.get('config')
         mysql_config = templated_var(mysql_config)
         if isinstance(mysql_config, str):
             mysql_config = json.loads(mysql_config)
-        sql = config.get(u'sql')
+        sql = config.get('query')
         sql = templated_var(sql)
 
         entity = MySQLQueryExtractor()
         entity.mysql_config = mysql_config
-        entity.sql = sql
+        entity.query = sql
         # configure_base will solve template
-        return cls.configure_base(entity.sql, entity)
+        return cls.configure_base(entity.query, entity)
 
 
 EXTRACTORS = {'mysql': MySQLQueryExtractor.parse}

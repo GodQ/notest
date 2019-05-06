@@ -7,10 +7,6 @@ import sys
 from . import parsing
 from .parsing import flatten_dictionaries, lowercase_keys, safe_to_bool
 
-# Python 3 compatibility
-if sys.version_info[0] > 2:
-    from builtins import range as xrange
-    from past.builtins import basestring
 
 """ Collection of generators to be used in templating for test data
 
@@ -83,7 +79,7 @@ def factory_generate_text(legal_characters=string.ascii_letters, min_length=8, m
         while(True):
             length = random.randint(local_min_len, local_max_len)
             array = [random.choice(legal_characters)
-                     for x in xrange(0, length)]
+                     for x in range(0, length)]
             yield ''.join(array)
 
     return generate_text
@@ -207,7 +203,7 @@ def register_generator(typename, parse_function):
         typename is the new generator type name (must not already exist)
         parse_function will parse a configuration object (dict)
     """
-    if not isinstance(typename, basestring):
+    if not isinstance(typename, str):
         raise TypeError(
             'Generator type name {0} is invalid, must be a string'.format(typename))
     if typename in GENERATOR_TYPES:
@@ -233,11 +229,11 @@ def parse_generator(configuration):
             'Generator type given {0} is not valid '.format(gen_type))
 
     # Do the easy parsing, delegate more complex logic to parsing functions
-    if gen_type == u'env_variable':
-        return factory_env_variable(configuration[u'variable_name'])()
-    elif gen_type == u'env_string':
-        return factory_env_string(configuration[u'string'])()
-    elif gen_type == u'number_sequence':
+    if gen_type == 'env_variable':
+        return factory_env_variable(configuration['variable_name'])()
+    elif gen_type == 'env_string':
+        return factory_env_string(configuration['string'])()
+    elif gen_type == 'number_sequence':
         start = configuration.get('start')
         increment = configuration.get('increment')
         if not start:
@@ -249,9 +245,9 @@ def parse_generator(configuration):
         else:
             increment = int(increment)
         return factory_generate_ids(start, increment)()
-    elif gen_type == u'random_int':
+    elif gen_type == 'random_int':
         return generator_random_int32()
-    elif gen_type == u'random_text':
+    elif gen_type == 'random_text':
         return parse_random_text_generator(configuration)
     elif gen_type in GENERATOR_TYPES:
         return GENERATOR_PARSING[gen_type](configuration)

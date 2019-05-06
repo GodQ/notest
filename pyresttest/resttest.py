@@ -4,9 +4,7 @@ import os
 import inspect
 import traceback
 import yaml
-import pycurl
 import json
-import csv
 import logging
 import threading
 from optparse import OptionParser
@@ -16,28 +14,13 @@ import time
 from pyresttest.clients.http_client import HttpClient
 from pyresttest.plugin_registery import register_extensions
 
-try:
-    from cStringIO import StringIO as MyIO
-except:
-    try:
-        from StringIO import StringIO as MyIO
-    except ImportError:
-        from io import BytesIO as MyIO
-
-ESCAPE_DECODING = 'string-escape'
-# Python 3 compatibility
-if sys.version_info[0] > 2:
-    from past.builtins import basestring
-    from builtins import range as xrange
-
-    ESCAPE_DECODING = 'unicode_escape'
+ESCAPE_DECODING = 'unicode_escape'
 
 # Dirty hack to allow for running this as a script :-/
 if __name__ == '__main__':
     sys.path.append(os.path.dirname(os.path.dirname(
         os.path.realpath(__file__))))
-    from pyresttest.six import text_type
-    from pyresttest.binding import Context
+    from pyresttest.context import Context
     from pyresttest import generators
     from pyresttest import validators
     from pyresttest import tests
@@ -47,15 +30,11 @@ if __name__ == '__main__':
 
     from pyresttest.validators import Failure
     from pyresttest.tests import Test, DEFAULT_TIMEOUT
-    from pyresttest.benchmarks import Benchmark, AGGREGATES, METRICS, \
-        parse_benchmark
-else:  # Normal imports
-    from . import six
-    from .six import text_type
 
+else:  # Normal imports
     # Pyresttest internals
-    from . import binding
-    from .binding import Context
+    from . import context
+    from .context import Context
     from . import generators
     from .generators import parse_generator
     from . import parsing
@@ -65,8 +44,6 @@ else:  # Normal imports
     from .validators import Failure
     from . import tests
     from .tests import Test, DEFAULT_TIMEOUT
-    from . import benchmarks
-    from .benchmarks import Benchmark, AGGREGATES, METRICS, parse_benchmark
 
 """
 Executable class, ties everything together into the framework.
@@ -85,7 +62,7 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
                   'critical': logging.CRITICAL}
 
 logging.basicConfig(format='%(levelname)s:%(message)s')
-logger = logging.getLogger('pyresttest')
+logger = logging.getLogger('pyresttest.main')
 
 DIR_LOCK = threading.RLock()  # Guards operations changing the working directory
 
@@ -145,23 +122,6 @@ class TestSet:
         return json.dumps(self, default=safe_to_json)
 
 
-class BenchmarkResult:
-    """ Stores results from a benchmark for reporting use """
-    group = None
-    name = u'unnamed'
-
-    results = dict()  # Benchmark output, map the metric to the result array for that metric
-    aggregates = list()  # List of aggregates, as tuples of (metricname, aggregate, result)
-    failures = 0  # Track call count that failed
-
-    def __init__(self):
-        self.aggregates = list()
-        self.results = list()
-
-    def __str__(self):
-        return json.dumps(self, default=safe_to_json)
-
-
 class TestResponse:
     """ Encapsulates everything about a test response """
     test = None  # Test run
@@ -202,16 +162,9 @@ def parse_headers(header_string):
     if not headers:
         return list()
 
-    # Python 2.6 message header parsing fails for Unicode strings, 2.7 is fine. Go figure.
-    if sys.version_info < (2, 7):
-        header_msg = message_from_string(headers.encode(HEADER_ENCODING))
-        return [(text_type(k.lower(), HEADER_ENCODING),
-                 text_type(v, HEADER_ENCODING))
-                for k, v in header_msg.items()]
-    else:
-        header_msg = message_from_string(headers)
-        # Note: HTTP headers are *case-insensitive* per RFC 2616
-        return [(k.lower(), v) for k, v in header_msg.items()]
+    header_msg = message_from_string(headers)
+    # Note: HTTP headers are *case-insensitive* per RFC 2616
+    return [(k.lower(), v) for k, v in header_msg.items()]
 
 
 def parse_testsets(base_url, test_structure, test_files=set(),
@@ -261,17 +214,14 @@ def parse_testsets(base_url, test_structure, test_files=set(),
                 elif key == u'url':  # Simple test, just a GET to a URL
                     mytest = Test()
                     val = node[key]
-                    assert isinstance(val, basestring)
+                    assert isinstance(val, str)
                     mytest.url = base_url + val
                     tests_list.append(mytest)
                 elif key == u'test':  # Complex test with additional parameters
                     with cd(working_directory):
                         child = node[key]
-                        mytest = Test.parse_test(base_url, child)
+                        mytest = Test.init_test(base_url, child)
                         tests_list.append(mytest)
-                elif key == u'benchmark':
-                    benchmark = parse_benchmark(base_url, node[key])
-                    benchmarks.append(benchmark)
                 elif key == u'config' or key == u'configuration':
                     test_config = parse_configuration(
                         node[key], base_config=test_config)
@@ -329,12 +279,11 @@ def run_test(mytest, test_config=TestConfig(), context=None,
     my_context = context
     if my_context is None:
         my_context = Context()
-
-    mytest.update_context_before(my_context)
-    templated_test = mytest.realize(my_context)
+    mytest.context = my_context
+    mytest.update_context_before()
 
     result = TestResponse()
-    result.test = templated_test
+    result.test = mytest
     result.passed = None
 
     if test_config.interactive:
@@ -342,24 +291,17 @@ def run_test(mytest, test_config=TestConfig(), context=None,
         print("%s" % mytest.name)
         print("-----------------------------------")
         print("REQUEST:")
-        print("%s %s" % (templated_test.method, templated_test.url))
+        print("%s %s" % (mytest.method, mytest.url))
         print("HEADERS:")
-        print("%s" % (templated_test.headers))
+        print("%s" % (mytest.headers))
         if mytest.body is not None:
-            print("\n%s" % templated_test.body)
+            print("\n%s" % mytest.body)
 
-        if sys.version_info >= (3, 0):
-            input("Press ENTER when ready (%d): " % (mytest.delay))
-        else:
-            raw_input("Press ENTER when ready (%d): " % (mytest.delay))
-
-    if mytest.delay > 0:
-        print("Delaying for %ds" % mytest.delay)
-        time.sleep(mytest.delay)
+        input("Press ENTER when ready")
 
     # send request
     try:
-        http_response = templated_test.send_request(
+        http_response = mytest.send_request(
             timeout=test_config.timeout,
             context=my_context,
             handler=http_handler,
@@ -383,7 +325,7 @@ def run_test(mytest, test_config=TestConfig(), context=None,
     # Retrieve Headers
     headers = http_response.headers
     if headers and not isinstance(headers, list):
-        headers = text_type(headers, HEADER_ENCODING)  # Per RFC 2616
+        headers = str(headers, HEADER_ENCODING)  # Per RFC 2616
         # Parse HTTP headers
         try:
             result.response_headers = parse_headers(headers)
@@ -442,7 +384,7 @@ def run_test(mytest, test_config=TestConfig(), context=None,
             logger.debug("no validators found")
 
         # Only do context updates if test was successful
-        mytest.update_context_after(result.body, headers, my_context)
+        mytest.update_context_after(result.body, headers)
 
     # Print response body if override is set to print all *OR* if test failed
     # (to capture maybe a stack trace)
@@ -450,7 +392,11 @@ def run_test(mytest, test_config=TestConfig(), context=None,
         if test_config.interactive:
             print("RESPONSE:")
         if result.body:
-            print(result.body.decode(ESCAPE_DECODING))
+            body = result.body
+            if isinstance(body, bytes):
+                print(body.decode())
+            else:
+                print(body)
         # else:
         #     print("None")
 
@@ -468,184 +414,6 @@ def run_test(mytest, test_config=TestConfig(), context=None,
     return result
 
 
-def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args,
-                  **kwargs):
-    """ Perform a benchmark, (re)using a given, configured CURL call to do so
-        The actual analysis of metrics is performed separately, to allow for testing
-    """
-
-    # Context handling
-    my_context = context
-    if my_context is None:
-        my_context = Context()
-
-    warmup_runs = benchmark.warmup_runs
-    benchmark_runs = benchmark.benchmark_runs
-    message = ''  # Message is name of benchmark... print it?
-
-    if (benchmark_runs <= 0):
-        raise Exception(
-            "Invalid number of benchmark runs, must be > 0 :" + benchmark_runs)
-
-    result = TestResponse()
-
-    # TODO create and use a curl-returning configuration function
-    # TODO create and use a post-benchmark cleanup function
-    # They should use is_dynamic/is_context_modifier to determine if they need to
-    #  worry about context and re-reading/retemplating and only do it if needed
-    #    - Also, they will need to be smart enough to handle extraction functions
-    #  For performance reasons, we don't want to re-run templating/extraction if
-    #   we do not need to, and do not want to save request bodies.
-
-    # Initialize variables to store output
-    output = BenchmarkResult()
-    output.name = benchmark.name
-    output.group = benchmark.group
-    metricnames = list(benchmark.metrics)
-    # Metric variable for curl, to avoid hash lookup for every metric name
-    metricvalues = [METRICS[name] for name in metricnames]
-    # Initialize arrays to store results for each metric
-    results = [list() for x in xrange(0, len(metricnames))]
-    curl = pycurl.Curl()
-
-    # Benchmark warm-up to allow for caching, JIT compiling, on client
-    logger.info('Warmup: ' + message + ' started')
-    for x in xrange(0, warmup_runs):
-        benchmark.update_context_before(my_context)
-        templated = benchmark.realize(my_context)
-        curl = templated.configure_curl(
-            timeout=test_config.timeout, context=my_context,
-            curl_handle=curl)
-        # Do not store actual response body at all.
-        curl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
-        curl.perform()
-
-    logger.info('Warmup: ' + message + ' finished')
-
-    logger.info('Benchmark: ' + message + ' starting')
-
-    for x in xrange(0, benchmark_runs):  # Run the actual benchmarks
-        # Setup benchmark
-        benchmark.update_context_before(my_context)
-        templated = benchmark.realize(my_context)
-        curl = templated.configure_curl(
-            timeout=test_config.timeout, context=my_context,
-            curl_handle=curl)
-        # Do not store actual response body at all.
-        curl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
-
-        try:  # Run the curl call, if it errors, then add to failure counts for benchmark
-            curl.perform()
-        except Exception:
-            output.failures = output.failures + 1
-            curl.close()
-            curl = pycurl.Curl()
-            continue  # Skip metrics collection
-
-        # Get all metrics values for this run, and store to metric lists
-        for i in xrange(0, len(metricnames)):
-            results[i].append(curl.getinfo(metricvalues[i]))
-
-    logger.info('Benchmark: ' + message + ' ending')
-
-    temp_results = dict()
-    for i in xrange(0, len(metricnames)):
-        temp_results[metricnames[i]] = results[i]
-    output.results = temp_results
-    return analyze_benchmark_results(output, benchmark)
-
-
-def analyze_benchmark_results(benchmark_result, benchmark):
-    """ Take a benchmark result containing raw benchmark results, and do aggregation by
-    applying functions
-
-    Aggregates come out in format of metricname, aggregate_name, result """
-
-    output = BenchmarkResult()
-    output.name = benchmark_result.name
-    output.group = benchmark_result.group
-    output.failures = benchmark_result.failures
-
-    # Copy raw metric arrays over where necessary
-    raw_results = benchmark_result.results
-    temp = dict()
-    for metric in benchmark.raw_metrics:
-        temp[metric] = raw_results[metric]
-    output.results = temp
-
-    # Compute aggregates for each metric, and add tuples to aggregate results
-    aggregate_results = list()
-    for metricname, aggregate_list in benchmark.aggregated_metrics.items():
-        numbers = raw_results[metricname]
-        for aggregate_name in aggregate_list:
-            if numbers:  # Only compute aggregates if numbers exist
-                aggregate_function = AGGREGATES[aggregate_name]
-                aggregate_results.append(
-                    (metricname, aggregate_name,
-                     aggregate_function(numbers)))
-            else:
-                aggregate_results.append((metricname, aggregate_name, None))
-
-    output.aggregates = aggregate_results
-    return output
-
-
-def metrics_to_tuples(raw_metrics):
-    """ Converts metric dictionary of name:values_array into list of tuples
-        Use case: writing out benchmark to CSV, etc
-
-        Input:
-        {'metric':[value1,value2...], 'metric2':[value1,value2,...]...}
-
-        Output: list, with tuple header row, then list of tuples of values
-        [('metric','metric',...), (metric1_value1,metric2_value1, ...) ... ]
-    """
-    if not isinstance(raw_metrics, dict):
-        raise TypeError("Input must be dictionary!")
-
-    metrics = sorted(raw_metrics.keys())
-    arrays = [raw_metrics[metric] for metric in metrics]
-
-    num_rows = len(arrays[0])  # Assume all same size or this fails
-    output = list()
-    output.append(tuple(metrics))  # Add headers
-
-    # Create list of tuples mimicking 2D array from input
-    for row in xrange(0, num_rows):
-        new_row = tuple(
-            [arrays[col][row] for col in xrange(0, len(arrays))])
-        output.append(new_row)
-    return output
-
-
-def write_benchmark_json(file_out, benchmark_result, benchmark,
-                         test_config=TestConfig()):
-    """ Writes benchmark to file as json """
-    json.dump(benchmark_result, file_out, default=safe_to_json)
-
-
-def write_benchmark_csv(file_out, benchmark_result, benchmark,
-                        test_config=TestConfig()):
-    """ Writes benchmark to file as csv """
-    writer = csv.writer(file_out)
-    writer.writerow(('Benchmark', benchmark_result.name))
-    writer.writerow(('Benchmark Group', benchmark_result.group))
-    writer.writerow(('Failures', benchmark_result.failures))
-
-    # Write result arrays
-    if benchmark_result.results:
-        writer.writerow(('Results', ''))
-        writer.writerows(metrics_to_tuples(benchmark_result.results))
-    if benchmark_result.aggregates:
-        writer.writerow(('Aggregates', ''))
-        writer.writerows(benchmark_result.aggregates)
-
-
-# Method to call when writing benchmark file
-OUTPUT_METHODS = {u'csv': write_benchmark_csv,
-                  u'json': write_benchmark_json}
-
-
 def log_failure(failure, context=None, test_config=TestConfig()):
     """ Log a failure from a test """
     logger.error("Test Failure, failure type: {0}, Reason: {1}".format(
@@ -660,12 +428,11 @@ def run_testsets(testsets):
     group_failure_counts = dict()
     total_failures = 0
     myinteractive = False
-    curl_handle = pycurl.Curl()
+    curl_handle = None
 
     for testset in testsets:
         mytests = testset.tests
         myconfig = testset.config
-        mybenchmarks = testset.benchmarks
         context = Context()
 
         # Bind variables & add generators if pertinent
@@ -676,7 +443,7 @@ def run_testsets(testsets):
                 context.add_generator(key, value)
 
         # Make sure we actually have tests to execute
-        if not mytests and not mybenchmarks:
+        if not mytests:
             # no tests in this test set, probably just imports.. skip to next
             # test set
             break
@@ -737,31 +504,6 @@ def run_testsets(testsets):
                 print(
                     'STOP ON FAILURE! stopping test set execution, continuing with other test sets')
                 break
-
-        for benchmark in mybenchmarks:  # Run benchmarks, analyze, write
-            if not benchmark.metrics:
-                logger.debug('Skipping benchmark, no metrics to collect')
-                continue
-
-            logger.info("Benchmark Starting: " + benchmark.name +
-                        " Group: " + benchmark.group)
-            benchmark_result = run_benchmark(
-                benchmark, myconfig, context=context)
-            print(benchmark_result)
-            logger.info("Benchmark Done: " + benchmark.name +
-                        " Group: " + benchmark.group)
-
-            if benchmark.output_file:  # Write file
-                logger.debug(
-                    'Writing benchmark to file in format: ' + benchmark.output_format)
-                write_method = OUTPUT_METHODS[benchmark.output_format]
-                my_file = open(benchmark.output_file,
-                               'w')  # Overwrites file
-                logger.debug("Benchmark writing to file: " +
-                             benchmark.output_file)
-                write_method(my_file, benchmark_result,
-                             benchmark, test_config=myconfig)
-                my_file.close()
 
     if myinteractive:
         # a break for when interactive bits are complete, before summary data

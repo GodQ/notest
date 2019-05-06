@@ -2,7 +2,7 @@
 
 from pyresttest import resttest
 from pyresttest.benchmarks import Benchmark
-from pyresttest.binding import Context
+from pyresttest.context import Context
 from pyresttest.contenthandling import ContentHandler
 from pyresttest.generators import factory_generate_ids
 

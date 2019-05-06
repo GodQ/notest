@@ -1,6 +1,6 @@
 # Sample python extension
 import pyresttest.validators as validators
-from pyresttest.binding import Context
+from pyresttest.context import Context
 import sys
 
 # Python 3 compatibility
