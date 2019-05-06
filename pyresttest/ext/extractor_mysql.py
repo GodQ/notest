@@ -8,6 +8,7 @@ import yaml
 import ast
 import jmespath
 from pyresttest.lib.mysql_lib import MysqlClient
+from pyresttest.lib.utils import templated_var
 
 try:  # First try to load pyresttest from global namespace
     from pyresttest import validators
@@ -40,21 +41,28 @@ class MySQLQueryExtractor(validators.AbstractExtractor):
         try:
             with MysqlClient(self.mysql_config) as cli:
                 res = cli.query(query)
+                if len(res) == 0:
+                    raise Exception(
+                        "No data queried in MySQL by '{}'!".format(query))
+                res = res[0]
+                if isinstance(res, tuple):
+                    res = res[0]
                 return res
         except Exception as e:
             raise ValueError("Invalid query: " + query + " : " + str(e))
 
     @classmethod
     def parse(cls, config):
-        if not isinstance(config, dict):
-            raise Exception("MySQL Extractor must be a dict, not {} {}".
-                            format(type(config), config))
-        if "sql" not in config or "config" not in config:
-            raise Exception("MySQL Extractor must have sql and config")
+        mysql_config = config.get(u'config')
+        mysql_config = templated_var(mysql_config)
+        if isinstance(mysql_config, str):
+            mysql_config = json.loads(mysql_config)
+        sql = config.get(u'sql')
+        sql = templated_var(sql)
 
         entity = MySQLQueryExtractor()
-        entity.mysql_config = config["config"]
-        entity.sql = config["sql"]
+        entity.mysql_config = mysql_config
+        entity.sql = sql
         # configure_base will solve template
         return cls.configure_base(entity.sql, entity)
 
