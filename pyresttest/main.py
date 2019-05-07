@@ -88,9 +88,6 @@ def parse_command_line_args(args_in):
                       action="store", type="string")
     parser.add_option("--test", help="Test file to use",
                       action="store", type="string")
-    parser.add_option('--verbose',
-                      help='Put cURL into verbose mode for extra debugging power',
-                      action='store_true', default=False, dest="verbose")
     parser.add_option('--ssl-insecure',
                       help='Disable cURL host and peer cert verification',
                       action='store_true', default=False,

@@ -164,7 +164,6 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
                                                   importfile)
                     if importfile not in test_files:
                         logger.info("Importing test sets: " + importfile)
-                        logger.debug("Importing test sets: " + importfile)
                         test_files.add(importfile)
                         import_test_structure = read_test_file(importfile)
                         with CD(os.path.dirname(
@@ -268,12 +267,11 @@ def run_testsets(testsets):
                 else:  # Test passed, print results
                     msg = list()
                     msg.append("")
-                    msg.append('Test Succeeded: ' + test.name)
-                    msg.append(" URL=" + result.test.url)
-                    msg.append(" Group=" + test.group)
-                    msg.append(
-                        " HTTP Status Code: " + str(result.response_code))
-                    msg.append("")
+                    msg.append('Test Name: ' + test.name)
+                    msg.append("  Request= {} {}".format(result.test.method, result.test.url))
+                    msg.append("  Group=" + test.group)
+                    msg.append("  HTTP Status Code: {}".format(result.response_code))
+                    msg.append("  passed\n")
                     logger.info("\n".join(msg))
 
                 # Add results for this test group to the resultset
@@ -281,7 +279,7 @@ def run_testsets(testsets):
 
                 # handle stop_on_failure flag
                 if not result.passed and test.stop_on_failure is not None and test.stop_on_failure:
-                    print(
+                    logger.info(
                         'STOP ON FAILURE! stopping test set execution, continuing with other test sets')
                     break
 

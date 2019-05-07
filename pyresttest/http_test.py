@@ -122,7 +122,7 @@ class HttpTest(object):
     group = 'Default'
     name = 'Unnamed'
     validators = None  # Validators for response body, IE regexes, etc
-    stop_on_failure = False
+    stop_on_failure = True
     failures = None
     auth_username = None
     auth_password = None
