@@ -2,11 +2,12 @@ from .import_base import *
 import json
 import logging
 
-logger = logging.getLogger('pyresttest.tests')
+logger = logging.getLogger('pyresttest.http_test')
 
 from pyresttest.clients.http_client import HttpClient
 from pyresttest.clients.http_auth_type import HttpAuthType
 from pyresttest.lib.utils import templated_var
+from pyresttest.test_result import TestResult
 
 """
 Pull out the Test objects and logic associated with them
@@ -62,8 +63,46 @@ def coerce_list_of_ints(val):
         return [int(val)]
 
 
+class HttpTestResult(TestResult):
+    """ Encapsulates everything about a test response """
+    test = None  # Test run
+    response_code = None
+
+    body = None  # Response body, if tracked
+
+    passed = False
+    response_headers = None
+    failures = None
+
+    def __init__(self):
+        self.failures = list()
+
+    def __str__(self):
+        return json.dumps(self, default=safe_to_json)
+
+
+def parse_headers(header_string):
+    """ Parse a header-string into individual headers
+        Implementation based on: http://stackoverflow.com/a/5955949/95122
+        Note that headers are a list of (key, value) since duplicate headers are allowed
+
+        NEW NOTE: keys & values are unicode strings, but can only contain ISO-8859-1 characters
+    """
+    # First line is request line, strip it out
+    if not header_string:
+        return list()
+    request, headers = header_string.split('\r\n', 1)
+    if not headers:
+        return list()
+
+    header_msg = message_from_string(headers)
+    # Note: HTTP headers are *case-insensitive* per RFC 2616
+    return [(k.lower(), v) for k, v in header_msg.items()]
+
+
 class HttpTest(object):
     """ Describes a REST test """
+    test_type = "http_test"
     url = None
     expected_status = [200]  # expected HTTP status code or codes
     http_body = None
@@ -196,7 +235,7 @@ class HttpTest(object):
         )
 
     @classmethod
-    def init_test(cls, node, input_test=None, test_path=None):
+    def parse_from_dict(cls, node, input_test=None, test_path=None):
         """ Create or modify a test, input_test, using configuration in node, and base_url
         If no input_test is given, creates a new one
 
