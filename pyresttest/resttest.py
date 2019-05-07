@@ -239,12 +239,14 @@ def parse_configuration(node, base_config=None):
     node = lowercase_keys(flatten_dictionaries(node))  # Make it usable
 
     # ahead process variable_binds, other key can use it in template
+    if not test_config.variable_binds:
+        test_config.variable_binds = dict()
+
     if 'variable_binds' in node:
         value = node['variable_binds']
-        if not test_config.variable_binds:
-            test_config.variable_binds = dict()
         test_config.variable_binds.update(flatten_dictionaries(value))
 
+    # set default_base_url to global variable_binds
     if 'default_base_url' in node:
         value = node['default_base_url']
         default_base_url = templated_var(value, test_config.variable_binds)
@@ -543,7 +545,6 @@ def main(args):
     Execute a test against the given base url.
 
     Keys allowed for args:
-        url           - REQUIRED - Base URL
         test          - REQUIRED - Test file (yaml)
         print_bodies  - OPTIONAL - print response body
         print_headers  - OPTIONAL - print response headers
@@ -621,9 +622,6 @@ def parse_command_line_args(args_in):
                       action="store", type="string")
     parser.add_option(u"--interactive", help="Interactive mode",
                       action="store", type="string")
-    parser.add_option(
-        u"--url", help="Base URL to run tests against", action="store",
-        type="string")
     parser.add_option(u"--test", help="Test file to use",
                       action="store", type="string")
     parser.add_option(u'--import_extensions',
@@ -639,9 +637,6 @@ def parse_command_line_args(args_in):
                       help='Disable cURL host and peer cert verification',
                       action='store_true', default=False,
                       dest="ssl_insecure")
-    parser.add_option(u'--absolute-urls',
-                      help='Enable absolute URLs in tests instead of relative paths',
-                      action="store_true", dest="absolute_urls")
     parser.add_option(u'--skip_term_colors',
                       help='Turn off the output term colors',
                       action='store_true', default=False,
@@ -651,18 +646,13 @@ def parse_command_line_args(args_in):
     args = vars(args)
 
     # Handle url/test as named, or, failing that, positional arguments
-    if not args['url'] or not args['test']:
-        if len(unparsed_args) == 2:
-            args[u'url'] = unparsed_args[0]
-            args[u'test'] = unparsed_args[1]
-        elif len(unparsed_args) == 1 and args['url']:
+    if not args['test']:
+        if len(unparsed_args) > 0:
             args['test'] = unparsed_args[0]
-        elif len(unparsed_args) == 1 and args['test']:
-            args['url'] = unparsed_args[0]
         else:
             parser.print_help()
             parser.error(
-                "wrong number of arguments, need both url and test filename, either as 1st and 2nd parameters or via --url and --test")
+                "wrong number of arguments, need test filename, either as 1st parameters or via --test")
 
     # So modules can be loaded from current folder
     args['cwd'] = os.path.realpath(os.path.abspath(os.getcwd()))

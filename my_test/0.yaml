@@ -1,6 +1,7 @@
 ---
 - config:
     - testset: "Quickstart app tests"
+    - default_base_url: 'http://localhost:5000'
 
 - test:
     - group: "Quickstart"
