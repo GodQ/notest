@@ -32,7 +32,7 @@
     - url: "/tasks"
     - method: "POST"
     - headers: {'Content-Type': 'application/json', "Token": 123}
-    - body: {template: '{"title": "$name", "id": $task_id, "done": $done}'}
+    - body: '{"title": "$name", "id": $task_id, "done": $done}'
     - expected_status: [201]
 
 - test:
@@ -44,7 +44,7 @@
     - url: "/tasks"
     - method: "POST"
     - headers: {'Content-Type': 'application/json', "Token": 123}
-    - body: {template: '{"title": "$name", "id": $task_id, "done": $done}'}
+    - body: '{"title": "$name", "id": $task_id, "done": $done}'
     - expected_status: [201]
     - validators:
         # Test key does not exist
@@ -52,7 +52,7 @@
         - compare:
             - jsonpath_mini: "info.0.id"
             - comparator: "str_eq"
-            - expected: {template: '$task_id'}
+            - expected: '$task_id'
     - extract_binds:
         - post_task_id: {jsonpath_mini: 'info.0.id'}
         - post_task_title:
@@ -64,7 +64,7 @@
     - group: "Quickstart"
     - name: "get"
     - headers: {'Content-Type': 'application/text', "Token": 123}
-    - url: {template: "/task/$post_task_id"}
+    - url: "/task/$post_task_id"
     - method: "GET"
     - expected_status: [200]
     - validators:
@@ -72,5 +72,5 @@
         - compare:
             - jsonpath_mini: "info.0.id"
             - comparator: "str_eq"
-            - expected: {template: '$post_task_title'}
+            - expected: '$post_task_title'
 

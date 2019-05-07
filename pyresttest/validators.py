@@ -364,9 +364,8 @@ class ComparatorValidator(AbstractValidator):
                     message="Expected value extractor threw exception",
                     details=trace, validator=self,
                     failure_type=FAILURE_EXTRACTOR_EXCEPTION)
-        elif self.isTemplateExpected and context:
-            expected_val = string.Template(
-                self.expected).safe_substitute(context.get_values())
+        elif context:
+            expected_val = templated_var(self.expected, context)
         else:
             expected_val = self.expected
 
@@ -436,7 +435,6 @@ class ComparatorValidator(AbstractValidator):
                 if not isinstance(template, str):
                     raise ValueError(
                         "Can't template a comparator-validator unless template value is a string")
-                output.isTemplateExpected = True
                 output.expected = template
             else:  # Extractor to compare against
                 output.expected = _get_extractor(expected)
