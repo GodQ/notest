@@ -40,4 +40,22 @@ def parse_mysql_query_generator(config, variable_binds):
         raise ValueError("Invalid query: " + sql + " : " + str(e))
 
 
-GENERATORS = {'mysql': parse_mysql_query_generator}
+def parse_mysql_upsert_generator(config, variable_binds):
+    """ Parses configuration options for a mysql_query generator """
+    mysql_config = config.get('config')
+    mysql_config = templated_var(mysql_config, variable_binds)
+    if isinstance(mysql_config, str):
+        mysql_config = json.loads(mysql_config)
+    sql = config.get('upsert')
+    sql = templated_var(sql)
+    try:
+        with MysqlClient(mysql_config) as cli:
+            cli.execute(sql)
+        return generators.factory_fixed_sequence([1])()
+    except Exception as e:
+        logger.error(str(e))
+        raise ValueError("Invalid query: " + sql + " : " + str(e))
+
+
+GENERATORS = {'mysql': parse_mysql_query_generator,
+              'mysql_upsert': parse_mysql_upsert_generator}

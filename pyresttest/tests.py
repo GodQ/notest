@@ -1,6 +1,7 @@
 from .import_base import *
 import json
 import logging
+
 logger = logging.getLogger('pyresttest.tests')
 
 from pyresttest.clients.http_client import HttpClient
@@ -61,7 +62,7 @@ def coerce_list_of_ints(val):
         return [int(val)]
 
 
-class Test(object):
+class HttpTest(object):
     """ Describes a REST test """
     url = None
     expected_status = [200]  # expected HTTP status code or codes
@@ -100,7 +101,7 @@ class Test(object):
         """ Optimization: limited copy of test object, for realize() methods
             This only copies fields changed vs. class, and keeps methods the same
         """
-        output = Test()
+        output = HttpTest()
         myvars = vars(self)
         output.__dict__ = myvars.copy()
         return output
@@ -210,7 +211,7 @@ class Test(object):
 
         mytest = input_test
         if not mytest:
-            mytest = Test()
+            mytest = HttpTest()
 
         # Clean up for easy parsing
         node = lowercase_keys(flatten_dictionaries(node))

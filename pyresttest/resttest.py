@@ -30,7 +30,7 @@ if __name__ == '__main__':
         safe_to_bool, safe_to_json
 
     from pyresttest.validators import Failure
-    from pyresttest.tests import Test, DEFAULT_TIMEOUT
+    from pyresttest.tests import HttpTest, DEFAULT_TIMEOUT
 
 else:  # Normal imports
     # Pyresttest internals
@@ -44,7 +44,7 @@ else:  # Normal imports
     from . import validators
     from .validators import Failure
     from . import tests
-    from .tests import Test, DEFAULT_TIMEOUT
+    from .tests import HttpTest, DEFAULT_TIMEOUT
 
 """
 Executable class, ties everything together into the framework.
@@ -210,7 +210,7 @@ def parse_testsets(test_structure, test_files=set(),
                                 vars=vars)
                             testsets.extend(import_testsets)
                 elif key == u'url':  # Simple test, just a GET to a URL
-                    mytest = Test()
+                    mytest = HttpTest()
                     val = node[key]
                     assert isinstance(val, str)
                     mytest.url = val
@@ -218,7 +218,7 @@ def parse_testsets(test_structure, test_files=set(),
                 elif key == u'test':  # Complex test with additional parameters
                     with cd(working_directory):
                         child = node[key]
-                        mytest = Test.init_test(child)
+                        mytest = HttpTest.init_test(child)
                         tests_list.append(mytest)
                 elif key == u'config' or key == u'configuration':
                     test_config = parse_configuration(
@@ -265,7 +265,8 @@ def parse_configuration(node, base_config=None):
             flat = flatten_dictionaries(value)
             gen_map = dict()
             for generator_name, generator_config in flat.items():
-                gen = parse_generator(generator_config, test_config.variable_binds)
+                gen = parse_generator(generator_config,
+                                      test_config.variable_binds)
                 gen_map[str(generator_name)] = gen
             test_config.generators = gen_map
 

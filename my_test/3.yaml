@@ -12,8 +12,11 @@
     - default_base_url: '$host1'
     # Generators to use in the test set
     - generators:
-        # Generator named 'id' that counts up from 10
         - task_id: {type: 'number_sequence', start: 10}
+        - insert_mysql_data:
+            type: 'mysql_upsert'
+            upsert: 'insert into sites(name,url) values ("a","a.com")'
+            config: '$mysql_config'
         - task_name:
             type: 'mysql'
             query: 'select name from sites'
