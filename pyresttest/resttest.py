@@ -13,6 +13,7 @@ import time
 
 from pyresttest.clients.http_client import HttpClient
 from pyresttest.plugin_registery import register_extensions
+from pyresttest.lib.utils import templated_var
 
 ESCAPE_DECODING = 'unicode_escape'
 
@@ -165,7 +166,7 @@ def parse_headers(header_string):
     return [(k.lower(), v) for k, v in header_msg.items()]
 
 
-def parse_testsets(base_url, test_structure, test_files=set(),
+def parse_testsets(test_structure, test_files=set(),
                    working_directory=None, vars=None):
     """ Convert a Python data structure read from validated YAML to a set of structured testsets
     The data structure is assumed to be a list of dictionaries, each of which describes:
@@ -205,19 +206,19 @@ def parse_testsets(base_url, test_structure, test_files=set(),
                         with cd(os.path.dirname(
                                 os.path.realpath(importfile))):
                             import_testsets = parse_testsets(
-                                base_url, import_test_structure, test_files,
+                                import_test_structure, test_files,
                                 vars=vars)
                             testsets.extend(import_testsets)
                 elif key == u'url':  # Simple test, just a GET to a URL
                     mytest = Test()
                     val = node[key]
                     assert isinstance(val, str)
-                    mytest.url = base_url + val
+                    mytest.url = val
                     tests_list.append(mytest)
                 elif key == u'test':  # Complex test with additional parameters
                     with cd(working_directory):
                         child = node[key]
-                        mytest = Test.init_test(base_url, child)
+                        mytest = Test.init_test(child)
                         tests_list.append(mytest)
                 elif key == u'config' or key == u'configuration':
                     test_config = parse_configuration(
@@ -243,6 +244,11 @@ def parse_configuration(node, base_config=None):
         if not test_config.variable_binds:
             test_config.variable_binds = dict()
         test_config.variable_binds.update(flatten_dictionaries(value))
+
+    if 'default_base_url' in node:
+        value = node['default_base_url']
+        default_base_url = templated_var(value, test_config.variable_binds)
+        test_config.variable_binds['default_base_url'] = default_base_url
 
     for key, value in node.items():
         if key == 'timeout':
@@ -569,13 +575,7 @@ def main(args):
     if my_vars and not isinstance(my_vars, dict):
         raise Exception("Variables must be a dictionary!")
 
-    # Set up base URL
-    base_url = args['url']
-
-    if 'absolute_urls' in args and args['absolute_urls']:
-        base_url = ''
-
-    tests = parse_testsets(base_url, test_structure,
+    tests = parse_testsets(test_structure,
                            working_directory=os.path.dirname(test_file),
                            vars=my_vars)
 

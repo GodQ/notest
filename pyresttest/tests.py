@@ -172,6 +172,8 @@ class Test(object):
     def realize(self, context=None):
         if not context:
             context = self.context
+        if self.url.startswith('/'):
+            self.url = "$default_base_url" + self.url
         self.url = templated_var(self.url, context)
         self.method = templated_var(self.method, context)
         self.body = templated_var(self.body, context)
@@ -193,7 +195,7 @@ class Test(object):
         )
 
     @classmethod
-    def init_test(cls, base_url, node, input_test=None, test_path=None):
+    def init_test(cls, node, input_test=None, test_path=None):
         """ Create or modify a test, input_test, using configuration in node, and base_url
         If no input_test is given, creates a new one
 
@@ -259,8 +261,7 @@ class Test(object):
             if configelement == 'url':
                 if isinstance(configvalue, dict):
                     configvalue = configvalue.get("template")
-                mytest.url = urlparse.urljoin(base_url, coerce_to_string(
-                                                      configvalue))
+                mytest.url = coerce_to_string(configvalue)
             elif configelement == 'body':
                 if isinstance(configvalue, dict):
                     configvalue = configvalue.get("template")

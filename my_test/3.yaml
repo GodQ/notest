@@ -3,10 +3,13 @@
 - config:
     - testset: "Quickstart app tests"
     - variable_binds:
+        host1: 'http://localhost:5000'
+        host2: 'http://localhost:5000'
         task_id: 1
         title: 'Gaius-Test'
         done: 'true'
         mysql_config: '{"user": "root", "password": "password", "host": "192.168.99.101", "database": "test"}'
+    - default_base_url: '$host1'
     # Generators to use in the test set
     - generators:
         # Generator named 'id' that counts up from 10
@@ -29,7 +32,7 @@
         - name: task_name
     - group: "Quickstart"
     - name: "post"
-    - url: "/tasks"
+    - url: "$host2/tasks"
     - method: "POST"
     - headers: {'Content-Type': 'application/json', "Token": 123}
     - body: '{"title": "$name", "id": $task_id, "done": $done}'
@@ -41,7 +44,7 @@
         - name: task_name
     - group: "Quickstart"
     - name: "post"
-    - url: "/tasks"
+    - url: "http://localhost:5000/tasks"
     - method: "POST"
     - headers: {'Content-Type': 'application/json', "Token": 123}
     - body: '{"title": "$name", "id": $task_id, "done": $done}'
