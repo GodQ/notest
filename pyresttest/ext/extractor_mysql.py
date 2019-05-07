@@ -32,38 +32,31 @@ class MySQLQueryExtractor(validators.AbstractExtractor):
         self.query = None
         self.mysql_config = None
 
-    def extract_internal(self, query=None, args=None, body=None,
-                         headers=None):
-        if isinstance(query, bytes):
-            query = query.decode()
-
+    def extract_internal(self, body=None, headers=None, context=None):
+        self.query = templated_var(self.query, context)
+        self.mysql_config = templated_var(self.mysql_config, context)
+        self.mysql_config = json.loads(self.mysql_config)
         try:
             with MysqlClient(self.mysql_config) as cli:
-                res = cli.query(query)
+                res = cli.query(self.query)
                 if len(res) == 0:
                     raise Exception(
-                        "No data queried in MySQL by '{}'!".format(query))
+                        "No data queried in MySQL by '{}'!".format(self.query))
                 res = res[0]
                 if isinstance(res, tuple):
                     res = res[0]
                 return res
         except Exception as e:
-            raise ValueError("Invalid query: " + query + " : " + str(e))
+            raise ValueError("Invalid query: '" + self.query + "' : " + str(e))
 
     @classmethod
     def parse(cls, config):
         mysql_config = config.get('config')
-        mysql_config = templated_var(mysql_config)
-        if isinstance(mysql_config, str):
-            mysql_config = json.loads(mysql_config)
         sql = config.get('query')
-        sql = templated_var(sql)
-
         entity = MySQLQueryExtractor()
         entity.mysql_config = mysql_config
         entity.query = sql
-        # configure_base will solve template
-        return cls.configure_base(entity.query, entity)
+        return entity
 
 
 EXTRACTORS = {'mysql': MySQLQueryExtractor.parse}

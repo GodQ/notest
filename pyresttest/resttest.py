@@ -110,13 +110,11 @@ class TestConfig:
 class TestSet:
     """ Encapsulates a set of tests and test configuration for them """
     tests = list()
-    benchmarks = list()
     config = TestConfig()
 
     def __init__(self):
         self.config = TestConfig()
         self.tests = list()
-        self.benchmarks = list()
 
     def __str__(self):
         return json.dumps(self, default=safe_to_json)
@@ -185,7 +183,6 @@ def parse_testsets(base_url, test_structure, test_files=set(),
     tests_list = list()
     test_config = TestConfig()
     testsets = list()
-    benchmarks = list()
 
     if working_directory is None:
         working_directory = os.path.abspath(os.getcwd())
@@ -228,7 +225,6 @@ def parse_testsets(base_url, test_structure, test_files=set(),
     testset = TestSet()
     testset.tests = tests_list
     testset.config = test_config
-    testset.benchmarks = benchmarks
     testsets.append(testset)
     return testsets
 
@@ -241,22 +237,27 @@ def parse_configuration(node, base_config=None):
 
     node = lowercase_keys(flatten_dictionaries(node))  # Make it usable
 
+    # ahead process variable_binds, other key can use it in template
+    if 'variable_binds' in node:
+        value = node['variable_binds']
+        if not test_config.variable_binds:
+            test_config.variable_binds = dict()
+        test_config.variable_binds.update(flatten_dictionaries(value))
+
     for key, value in node.items():
-        if key == u'timeout':
+        if key == 'timeout':
             test_config.timeout = int(value)
-        elif key == u'print_bodies':
+        elif key == 'print_bodies':
             test_config.print_bodies = safe_to_bool(value)
-        elif key == u'retries':
+        elif key == 'retries':
             test_config.retries = int(value)
-        elif key == u'variable_binds':
-            if not test_config.variable_binds:
-                test_config.variable_binds = dict()
-            test_config.variable_binds.update(flatten_dictionaries(value))
-        elif key == u'generators':
+        elif key == 'variable_binds':
+            pass
+        elif key == 'generators':
             flat = flatten_dictionaries(value)
             gen_map = dict()
             for generator_name, generator_config in flat.items():
-                gen = parse_generator(generator_config)
+                gen = parse_generator(generator_config, test_config.variable_binds)
                 gen_map[str(generator_name)] = gen
             test_config.generators = gen_map
 

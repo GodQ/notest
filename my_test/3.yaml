@@ -14,7 +14,7 @@
         - task_name:
             type: 'mysql'
             query: 'select name from sites'
-            config: '{"user": "root", "password": "password", "host": "192.168.99.101", "database": "test"}'
+            config: '$mysql_config'
 - test:
     - group: "Quickstart"
     - name: "clear all"
@@ -58,7 +58,7 @@
         - post_task_title:
             mysql:
               query: 'select name from sites limit 1'
-              config: '{"user": "root", "password": "password", "host": "192.168.99.101", "database": "test"}'
+              config: '$mysql_config'
 
 - test:
     - group: "Quickstart"

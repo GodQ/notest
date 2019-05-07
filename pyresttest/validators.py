@@ -162,51 +162,26 @@ class AbstractExtractor(object):
     query = None
     is_body_extractor = False  # Uses response body
     is_header_extractor = False  # Uses response headers
-    args = None
 
     def __str__(self):
-        return "Extractor type: {0}, query: {1}, args: {2}".format(
-            self.extractor_type, self.query,  self.args)
+        return "Extractor type: {0}, query: {1} ".format(
+            self.extractor_type, self.query)
 
-    def extract_internal(self, query=None, body=None, headers=None,
-                         args=None):
+    def extract_internal(self, body=None, headers=None, context=None):
         """ Do extraction, query should be pre-templated """
         pass
 
     def extract(self, body=None, headers=None, context=None):
         """ Extract data """
-        query = templated_var(data=self.query, context=context)
-        args = self.args
-        return self.extract_internal(query=query, body=body,
-                                     headers=headers, args=args)
+        self.query = templated_var(data=self.query, context=context)
+        return self.extract_internal(body=body, headers=headers, context=context)
 
     def get_readable_config(self, context=None):
         """ Print a human-readable version of the configuration """
         query = templated_var(data=self.query, context=context)
         output = 'Extractor Type: {0},  Query: "{1}"'.format(
             self.extractor_type, query)
-        if self.args:
-            args_string = ", Args: " + str(self.args)
-            output = output + args_string
         return output
-
-    @classmethod
-    def configure_base(cls, config, extractor_base):
-        """ Parse config object and do basic config on an Extractor
-        """
-
-        if isinstance(config, dict):
-            try:
-                extractor_base.query = config['template']
-            except KeyError:
-                raise ValueError(
-                    "Cannot define a dictionary config for abstract extractor without it having template key")
-        elif isinstance(config, str):
-            extractor_base.query = config
-        else:
-            raise TypeError(
-                "Base extractor must have a string or {template: querystring} configuration node!")
-        return extractor_base
 
 
 class MiniJsonExtractor(AbstractExtractor):
@@ -216,14 +191,13 @@ class MiniJsonExtractor(AbstractExtractor):
     extractor_type = 'jsonpath_mini'
     is_body_extractor = True
 
-    def extract_internal(self, query=None, args=None, body=None,
-                         headers=None):
+    def extract_internal(self, body=None, headers=None, context=None):
         if isinstance(body, bytes):
             body = body.decode('utf-8')  # Default JSON encoding
 
         try:
             body = json.loads(body)
-            return self.query_dictionary(query, body)
+            return self.query_dictionary(self.query, body)
         except ValueError:
             raise ValueError("Not legal JSON!")
 
@@ -249,7 +223,8 @@ class MiniJsonExtractor(AbstractExtractor):
     @classmethod
     def parse(cls, config):
         base = MiniJsonExtractor()
-        return cls.configure_base(config, base)
+        base.query = config
+        return base
 
 
 class HeaderExtractor(AbstractExtractor):
@@ -257,13 +232,12 @@ class HeaderExtractor(AbstractExtractor):
     extractor_type = 'header'
     is_header_extractor = True
 
-    def extract_internal(self, query=None, args=None, body=None,
-                         headers=None):
+    def extract_internal(self, body=None, headers=None, context=None):
         low = query.lower()
         # Value for all matching key names
         extracted = [y[1] for y in filter(lambda x: x[0] == low, headers)]
         if len(extracted) == 0:
-            raise ValueError("Invalid header name {0}".format(query))
+            raise ValueError("Invalid header name {0}".format(self.query))
         elif len(extracted) == 1:
             return extracted[0]
         else:
@@ -272,7 +246,8 @@ class HeaderExtractor(AbstractExtractor):
     @classmethod
     def parse(cls, config, extractor_base=None):
         base = HeaderExtractor()
-        return cls.configure_base(config, base)
+        base.query = config
+        return base
 
 
 class RawBodyExtractor(AbstractExtractor):
@@ -282,7 +257,7 @@ class RawBodyExtractor(AbstractExtractor):
     is_body_extractor = True
 
     def extract_internal(self, query=None, args=None, body=None,
-                         headers=None):
+                         headers=None, context=None):
         return body
 
     @classmethod

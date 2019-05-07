@@ -6,6 +6,7 @@ import sys
 
 from . import parsing
 from .parsing import flatten_dictionaries, lowercase_keys, safe_to_bool
+from pyresttest.lib.utils import templated_var
 
 
 """ Collection of generators to be used in templating for test data
@@ -216,13 +217,13 @@ def register_generator(typename, parse_function):
 register_generator('choice', parse_choice_generator)
 
 
-def parse_generator(configuration):
+def parse_generator(configuration, variable_binds=None):
     """ Parses a configuration built from yaml and returns a generator
         Configuration should be a map
     """
 
     configuration = lowercase_keys(flatten_dictionaries(configuration))
-    gen_type = str(configuration.get(u'type')).lower()
+    gen_type = str(configuration.get('type')).lower()
 
     if gen_type not in GENERATOR_TYPES:
         raise ValueError(
@@ -250,6 +251,6 @@ def parse_generator(configuration):
     elif gen_type == 'random_text':
         return parse_random_text_generator(configuration)
     elif gen_type in GENERATOR_TYPES:
-        return GENERATOR_PARSING[gen_type](configuration)
+        return GENERATOR_PARSING[gen_type](configuration, variable_binds)
     else:
         raise Exception("Unknown generator type: {0}".format('gen_type'))

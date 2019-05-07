@@ -16,10 +16,10 @@ except ImportError:  # Then try a relative import if possible
     from .. import generators
 
 
-def parse_mysql_query_generator(config):
+def parse_mysql_query_generator(config, variable_binds):
     """ Parses configuration options for a mysql_query generator """
     mysql_config = config.get('config')
-    mysql_config = templated_var(mysql_config)
+    mysql_config = templated_var(mysql_config, variable_binds)
     if isinstance(mysql_config, str):
         mysql_config = json.loads(mysql_config)
     sql = config.get('query')
