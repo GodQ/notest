@@ -7,6 +7,8 @@ import threading
 from pyresttest.lib.utils import templated_var
 from pyresttest.http_test_exec import run_http_test
 from pyresttest.lib.utils import read_test_file
+from pyresttest.operations import get_operation_function
+from pyresttest.test_result import TestResult
 
 ESCAPE_DECODING = 'unicode_escape'
 
@@ -14,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))))
 from pyresttest.context import Context
 from pyresttest.generators import parse_generator
+from pyresttest.operations import Operation
 from pyresttest.parsing import flatten_dictionaries, lowercase_keys, \
     safe_to_bool, safe_to_json
 from pyresttest.http_test import HttpTest, DEFAULT_TIMEOUT
@@ -157,7 +160,7 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
         if isinstance(node, dict):  # Each config element is a miniature key-value dictionary
             node = lowercase_keys(node)
             for key in node:
-                if key == u'import':
+                if key == 'import':
                     importfile = node[key]  # import another file
                     if importfile[0] != "/":
                         importfile = os.path.join(working_directory,
@@ -171,18 +174,22 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
                             import_testsets = parse_testsets(
                                 import_test_structure, test_files)
                             testsets.extend(import_testsets)
-                elif key == u'url':  # Simple test, just a GET to a URL
+                elif key == 'url':  # Simple test, just a GET to a URL
                     mytest = HttpTest()
                     val = node[key]
                     assert isinstance(val, str)
                     mytest.url = val
                     tests_list.append(mytest)
-                elif key == u'test':  # Complex test with additional parameters
+                elif key == 'test':  # Complex test with additional parameters
                     with CD(working_directory):
                         child = node[key]
                         mytest = HttpTest.parse_from_dict(child)
                         tests_list.append(mytest)
-                elif key == u'config' or key == u'configuration':
+                elif key == 'operation':  # Complex test with additional parameters
+                    operation = Operation()
+                    operation.config = flatten_dictionaries(node[key])
+                    tests_list.append(operation)
+                elif key == 'config' or key == 'configuration':
                     test_config = parse_configuration(
                         node[key], base_config=test_config)
     testset = TestSet()
@@ -282,6 +289,22 @@ def run_testsets(testsets):
                     logger.info(
                         'STOP ON FAILURE! stopping test set execution, continuing with other test sets')
                     break
+            elif test.test_type == "operation":
+                logger.info("do operation {}, config:{}".format(
+                    test.config.get('type'),
+                    test.config
+                ))
+                result = TestResult()
+                result.test_type = "operation"
+                result.test = test
+                try:
+                    opt_name = test.config.get('type')
+                    opt_func = get_operation_function(opt_name)
+                    opt_func(test.config, context)
+                    result.passed = True
+                except Exception as e:
+                    result.passed = False
+                group_results[test.group].append(result)
 
     if myinteractive:
         # a break for when interactive bits are complete, before summary data

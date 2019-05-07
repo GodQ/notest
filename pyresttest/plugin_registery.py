@@ -6,20 +6,17 @@ logger = logging.Logger("plugin_registry")
 
 ESCAPE_DECODING = 'string-escape'
 # Python 3 compatibility
-if sys.version_info[0] > 2:
-    from past.builtins import basestring
 
-    ESCAPE_DECODING = 'unicode_escape'
+from past.builtins import basestring
 
-# Dirty hack to allow for running this as a script :-/
-if __name__ == '__main__':
-    sys.path.append(os.path.dirname(os.path.dirname(
-        os.path.realpath(__file__))))
-    from pyresttest import generators
-    from pyresttest import validators
-else:  # Normal imports
-    from . import generators
-    from . import validators
+ESCAPE_DECODING = 'unicode_escape'
+
+sys.path.append(os.path.dirname(os.path.dirname(
+    os.path.realpath(__file__))))
+from pyresttest import generators
+from pyresttest import validators
+from pyresttest import operations
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -43,7 +40,8 @@ def register_extensions(modules):
             'COMPARATORS': validators.register_comparator,
             'VALIDATOR_TESTS': validators.register_test,
             'EXTRACTORS': validators.register_extractor,
-            'GENERATORS': generators.register_generator
+            'GENERATORS': generators.register_generator,
+            'OPERATIONS': operations.register_operations
         }
 
         has_registry = False
@@ -52,7 +50,7 @@ def register_extensions(modules):
                 registry = getattr(module, registry_name)
                 for key, val in registry.items():
                     register_function(key, val)
-                    logger.error("Register {} {} to module {}".format(
+                    logger.warning("Register {} {} to module {}".format(
                         registry_name.lower(), key, ext
                     ))
                 if registry:
@@ -75,6 +73,7 @@ def auto_load_ext(ext_dir=os.path.join(BASE_DIR, "ext")):
                 register_extensions(".".join(module_name))
             except ImportError as e:
                 logger.error(str(e))
+    print()
 
 
 auto_load_ext(ext_dir=os.path.join(BASE_DIR, "ext"))

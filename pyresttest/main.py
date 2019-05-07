@@ -31,6 +31,10 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
 DEFAULT_LOGGING_LEVEL = logging.INFO
 
 logger = logging.getLogger('pyresttest.main')
+logging_config = {
+    'level': DEFAULT_LOGGING_LEVEL,
+    'format': "%(asctime)s - %(message)s"
+}
 
 
 def main(args):
@@ -46,9 +50,8 @@ def main(args):
 
     if 'log' in args and args['log'] is not None:
         level = LOGGING_LEVELS.get(args['log'].lower())
-        logging.basicConfig(level=level)
-    else:
-        logging.basicConfig(level=DEFAULT_LOGGING_LEVEL)
+        logging_config['level'] = level
+    logging.basicConfig(**logging_config)
 
     test_file = args['test']
     test_structure = read_test_file(test_file)

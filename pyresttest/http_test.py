@@ -8,6 +8,7 @@ from pyresttest.clients.http_client import HttpClient
 from pyresttest.clients.http_auth_type import HttpAuthType
 from pyresttest.lib.utils import templated_var
 from pyresttest.test_result import TestResult
+from pyresttest.common_test import CommonTest
 
 """
 Pull out the Test objects and logic associated with them
@@ -111,7 +112,7 @@ def parse_headers(header_string):
     return [(k.lower(), v) for k, v in header_msg.items()]
 
 
-class HttpTest(object):
+class HttpTest(CommonTest):
     """ Describes a REST test """
     test_type = "http_test"
     url = None
