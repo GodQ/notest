@@ -1,22 +1,12 @@
 import traceback
 import json
-
-from sys import version_info
 import yaml
 import jsonschema
 
-PYTHON_MAJOR_VERSION = version_info[0]
+from pyresttest import validators
+from pyresttest.lib import parsing
+from pyresttest import contenthandling
 
-try:  # First try to load pyresttest from global namespace
-    from pyresttest import validators
-    from pyresttest import context
-    from pyresttest import parsing
-    from pyresttest import contenthandling    
-except ImportError:  # Then try a relative import if possible
-    from .. import validators
-    from .. import context
-    from .. import parsing
-    from .. import contenthandling
 
 class JsonSchemaValidator(validators.AbstractValidator):
     """ Json schema validator using the jsonschema library """
@@ -37,7 +27,10 @@ class JsonSchemaValidator(validators.AbstractValidator):
             return True
         except jsonschema.exceptions.ValidationError as ve:
             trace = traceback.format_exc()
-            return validators.Failure(message="JSON Schema Validation Failed", details=trace, validator=self, failure_type=validators.FAILURE_VALIDATOR_EXCEPTION)
+            return validators.Failure(
+                message="JSON Schema Validation Failed", details=trace,
+                validator=self,
+                failure_type=validators.FAILURE_VALIDATOR_EXCEPTION)
 
     def get_readable_config(self, context=None):
         return "JSON schema validation"
@@ -49,8 +42,10 @@ class JsonSchemaValidator(validators.AbstractValidator):
         if 'schema' not in config:
             raise ValueError(
                 "Cannot create schema validator without a 'schema' configuration element!")
-        validator.schema = contenthandling.ContentHandler.parse_content(config[
-                                                                        'schema'])
+        validator.schema = contenthandling.ContentHandler.parse_content(
+            config[
+                'schema'])
         return validator
+
 
 VALIDATORS = {'json_schema': JsonSchemaValidator.parse}

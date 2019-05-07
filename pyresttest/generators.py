@@ -2,12 +2,8 @@ import random
 import string
 import os
 import logging
-import sys
 
-from . import parsing
-from .parsing import flatten_dictionaries, lowercase_keys, safe_to_bool
-from pyresttest.lib.utils import templated_var
-
+from pyresttest.lib.parsing import flatten_dictionaries, lowercase_keys
 
 """ Collection of generators to be used in templating for test data
 

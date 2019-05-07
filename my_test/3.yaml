@@ -13,10 +13,6 @@
     # Generators to use in the test set
     - generators:
         - task_id: {type: 'number_sequence', start: 10}
-        - insert_mysql_data:
-            type: 'mysql_upsert'
-            upsert: 'insert into sites(name,url) values ("a","a.com")'
-            config: '$mysql_config'
         - task_name:
             type: 'mysql'
             query: 'select name from sites'
@@ -58,7 +54,10 @@
         - compare:
             - jsonpath_mini: "info.0.id"
             - comparator: "str_eq"
-            - expected: '$task_id'
+            - expected:
+                mysql:
+                  query: 'select name from sites limit 1'
+                  config: '$mysql_config'
     - extract_binds:
         - post_task_id: {jsonpath_mini: 'info.0.id'}
         - post_task_title:

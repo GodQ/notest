@@ -1,25 +1,17 @@
-import traceback
 import json
-import sys
-
-PYTHON_MAJOR_VERSION = sys.version_info[0]
-
-import yaml
-import ast
-import jmespath
 from pyresttest.lib.mysql_lib import MysqlClient
 from pyresttest.lib.utils import templated_var
+from pyresttest import validators
 
-try:  # First try to load pyresttest from global namespace
-    from pyresttest import validators
-    from pyresttest import context
-    from pyresttest import parsing
-    from pyresttest import contenthandling
-except ImportError:  # Then try a relative import if possible
-    from .. import validators
-    from .. import context
-    from .. import parsing
-    from .. import contenthandling
+
+'''
+- extract_binds:
+        - post_task_id: {jsonpath_mini: 'info.0.id'}
+        - post_task_title:
+            mysql:
+              query: 'select name from sites limit 1'
+              config: '$mysql_config'
+'''
 
 
 class MySQLQueryExtractor(validators.AbstractExtractor):

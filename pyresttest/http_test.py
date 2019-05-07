@@ -1,6 +1,6 @@
-from .import_base import *
 import json
 import logging
+import string
 
 logger = logging.getLogger('pyresttest.http_test')
 
@@ -9,6 +9,7 @@ from pyresttest.clients.http_auth_type import HttpAuthType
 from pyresttest.lib.utils import templated_var
 from pyresttest.test_result import TestResult
 from pyresttest.common_test import CommonTest
+from pyresttest.lib.parsing import lowercase_keys, flatten_dictionaries, safe_to_bool
 
 """
 Pull out the Test objects and logic associated with them

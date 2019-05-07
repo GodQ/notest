@@ -27,4 +27,5 @@
     - url: "/tasks"
     - auth_username: "foobar"
     - auth_password: "secret"
+    - continue_condition:
 

@@ -2,13 +2,11 @@ import logging
 import json
 import operator
 import traceback
-import string
 import os
 import re
-import sys
 
 # Local module imports
-from . import parsing
+from pyresttest.lib import parsing
 from past.builtins import long
 from pyresttest.lib.utils import templated_var
 

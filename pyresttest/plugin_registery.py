@@ -4,11 +4,6 @@ import logging
 
 logger = logging.Logger("plugin_registry")
 
-ESCAPE_DECODING = 'string-escape'
-# Python 3 compatibility
-
-from past.builtins import basestring
-
 ESCAPE_DECODING = 'unicode_escape'
 
 sys.path.append(os.path.dirname(os.path.dirname(
@@ -23,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def register_extensions(modules):
     """ Import the modules and register their respective extensions """
-    if isinstance(modules, basestring):  # Catch supplying just a string arg
+    if isinstance(modules, str):  # Catch supplying just a string arg
         modules = [modules]
     for ext in modules:
         # Get the package prefix and final module name
@@ -68,7 +63,7 @@ def auto_load_ext(ext_dir=os.path.join(BASE_DIR, "ext")):
         path = os.path.join(ext_dir, fname)
         if os.path.isfile(path) and fname.endswith(".py") and \
                 fname != "__init__.py":
-            module_name = ["pyresttest", "ext", fname.strip(".py")]
+            module_name = [fname.strip(".py")]
             try:
                 register_extensions(".".join(module_name))
             except ImportError as e:

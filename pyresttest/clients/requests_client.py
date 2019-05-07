@@ -1,6 +1,7 @@
 # from pyresttest.import_base import *
 import requests
 import json
+import os
 
 from pyresttest.import_base import *
 from .http_auth_type import HttpAuthType

@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 import sys
 import os
-import yaml
-import json
 import logging
 from optparse import OptionParser
-from pyresttest.plugin_registery import register_extensions
 from pyresttest.lib.utils import read_test_file
 sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))))
-from pyresttest.parsing import safe_to_bool
+from pyresttest.lib.parsing import safe_to_bool
 from pyresttest.master import run_testsets, parse_testsets
+from pyresttest.plugin_registery import auto_load_ext
 
 """
 Executable class, ties everything together into the framework.
@@ -70,6 +68,9 @@ def main(args):
         if 'ssl_insecure' in args and args['ssl_insecure'] is not None:
             t.config.ssl_insecure = safe_to_bool(args['ssl_insecure'])
 
+        if 'ext_dir' in args and args['ext_dir'] is not None:
+            auto_load_ext(args['ext_dir'])
+
         if 'skip_term_colors' in args and args[
             'skip_term_colors'] is not None:
             t.config.skip_term_colors = safe_to_bool(
@@ -95,6 +96,10 @@ def parse_command_line_args(args_in):
                       help='Disable cURL host and peer cert verification',
                       action='store_true', default=False,
                       dest="ssl_insecure")
+    parser.add_option('--ext-dir',
+                      help='local extensions dir',
+                      action='store',
+                      dest="ext_dir")
     parser.add_option('--skip_term_colors',
                       help='Turn off the output term colors',
                       action='store_true', default=False,

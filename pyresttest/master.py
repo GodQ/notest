@@ -17,7 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(
 from pyresttest.context import Context
 from pyresttest.generators import parse_generator
 from pyresttest.operations import Operation
-from pyresttest.parsing import flatten_dictionaries, lowercase_keys, \
+from pyresttest.lib.parsing import flatten_dictionaries, lowercase_keys, \
     safe_to_bool, safe_to_json
 from pyresttest.http_test import HttpTest, DEFAULT_TIMEOUT
 

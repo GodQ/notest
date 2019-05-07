@@ -1,13 +1,11 @@
 import os
-import sys
 
-from . import parsing
-from .parsing import *
+from pyresttest.lib.parsing import *
 
 # Python 2/3 switches
 PYTHON_MAJOR_VERSION = sys.version_info[0]
 if PYTHON_MAJOR_VERSION > 2:
-    from past.builtins import basestring
+    pass
 
 
 """
