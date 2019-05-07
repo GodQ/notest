@@ -78,7 +78,18 @@ class HttpTestResult(TestResult):
         self.failures = list()
 
     def __str__(self):
-        return json.dumps(self, default=safe_to_json)
+        msg = list()
+        msg.append("\n====================")
+        msg.append("Test Type: {}".format(self.test.test_type))
+        msg.append("Passed? : {}".format(self.passed))
+        msg.append("Test Url: {} {}".format(self.test.method, self.test.url))
+        msg.append("Response Code: {}".format(self.response_code))
+        msg.append("Response Headers: {}".format(self.response_headers))
+        msg.append("Response Body: {}".format(self.body))
+        msg.append("Failures : {}".format(self.failures))
+        msg.append("====================\n")
+
+        return "\n".join(msg)
 
 
 def parse_headers(header_string):

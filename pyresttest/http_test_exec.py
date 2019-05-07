@@ -160,6 +160,6 @@ def run_http_test(mytest, test_config, context=None,
         #     print("None")
 
     # TODO add string escape on body output
-    logger.debug(result)
+    logger.debug(str(result))
 
     return result

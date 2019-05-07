@@ -12,4 +12,11 @@ class TestResult:
         self.failures = list()
 
     def __str__(self):
-        return json.dumps(self, default=safe_to_json)
+        msg = list()
+        msg.append("\n====================")
+        msg.append("Test Type: {}".format(self.test.test_type))
+        msg.append("Passed? : {}".format(self.passed))
+        msg.append("Failures : {}".format(self.failures))
+        msg.append("====================\n")
+
+        return "\n".join(msg)

@@ -28,7 +28,8 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
                   'error': logging.ERROR,
                   'critical': logging.CRITICAL}
 
-logging.basicConfig(format='%(levelname)s:%(message)s')
+DEFAULT_LOGGING_LEVEL = logging.INFO
+
 logger = logging.getLogger('pyresttest.main')
 
 
@@ -44,8 +45,10 @@ def main(args):
     """
 
     if 'log' in args and args['log'] is not None:
-        logger.setLevel(LOGGING_LEVELS.get(
-            args['log'].lower(), logging.NOTSET))
+        level = LOGGING_LEVELS.get(args['log'].lower())
+        logging.basicConfig(level=level)
+    else:
+        logging.basicConfig(level=DEFAULT_LOGGING_LEVEL)
 
     test_file = args['test']
     test_structure = read_test_file(test_file)
