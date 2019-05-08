@@ -1,13 +1,13 @@
 # Sample python extension
-import pyresttest.validators as validators
-from pyresttest.context import Context
+import notest.validators as validators
+from notest.context import Context
 import sys
 
 # Python 3 compatibility
 if sys.version_info[0] > 2:
     from past.builtins import basestring
-from pyresttest.six import text_type
-from pyresttest.six import binary_type
+from notest.six import text_type
+from notest.six import binary_type
 
 class ContainsValidator(validators.AbstractValidator):
     # Sample validator that verifies a string is contained in the request body

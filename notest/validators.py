@@ -6,9 +6,9 @@ import os
 import re
 
 # Local module imports
-from pyresttest.lib import parsing
+from notest.lib import parsing
 from past.builtins import long
-from pyresttest.lib.utils import templated_var
+from notest.lib.utils import templated_var
 
 """
 Validator/Extractor logic for utility use
@@ -29,7 +29,7 @@ Validators:
 
 """
 
-logger = logging.getLogger('pyresttest.validators')
+logger = logging.getLogger('notest.validators')
 
 # Binary comparison tests
 COMPARATORS = {

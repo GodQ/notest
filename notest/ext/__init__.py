@@ -2,6 +2,6 @@
 import sys
 
 try:
-    import pyresttest
+    import notest
 except ImportError:
     sys.path.insert(0, '..')

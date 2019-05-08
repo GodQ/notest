@@ -3,7 +3,7 @@ import string
 import os
 import logging
 
-from pyresttest.lib.parsing import flatten_dictionaries, lowercase_keys
+from notest.lib.parsing import flatten_dictionaries, lowercase_keys
 
 """ Collection of generators to be used in templating for test data
 
@@ -13,7 +13,7 @@ Example: generators that case-swap
 
 INT32_MAX_VALUE = 2147483647  # Max of 32 bit unsigned int
 
-logger = logging.getLogger('pyresttest.generators')
+logger = logging.getLogger('notest.generators')
 
 # Character sets to use in text generation, python string plus extras
 CHARACTER_SETS = {

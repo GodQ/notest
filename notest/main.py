@@ -3,12 +3,12 @@ import sys
 import os
 import logging
 from optparse import OptionParser
-from pyresttest.lib.utils import read_test_file
+from notest.lib.utils import read_test_file
 sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))))
-from pyresttest.lib.parsing import safe_to_bool
-from pyresttest.master import run_testsets, parse_testsets
-from pyresttest.plugin_registery import auto_load_ext
+from notest.lib.parsing import safe_to_bool
+from notest.master import run_testsets, parse_testsets
+from notest.plugin_registery import auto_load_ext
 
 """
 Executable class, ties everything together into the framework.
@@ -28,7 +28,7 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
 
 DEFAULT_LOGGING_LEVEL = logging.INFO
 
-logger = logging.getLogger('pyresttest.main')
+logger = logging.getLogger('notest.main')
 logging_config = {
     'level': DEFAULT_LOGGING_LEVEL,
     'format': "%(asctime)s - %(message)s"

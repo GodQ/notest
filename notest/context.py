@@ -5,7 +5,7 @@ import types
 Basic context implementation for binding variables to values
 """
 
-logger = logging.getLogger('pyresttest.context')
+logger = logging.getLogger('notest.context')
 
 
 class Context(object):

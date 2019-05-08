@@ -5,11 +5,11 @@ PYTHON_MAJOR_VERSION = sys.version_info[0]
 
 import jmespath
 
-try:  # First try to load pyresttest from global namespace
-    from pyresttest import validators
-    from pyresttest import context
-    from pyresttest.lib import parsing
-    from pyresttest import contenthandling
+try:  # First try to load notest from global namespace
+    from notest import validators
+    from notest import context
+    from notest.lib import parsing
+    from notest import contenthandling
 except ImportError:  # Then try a relative import if possible
     from .. import validators
     from .. import context

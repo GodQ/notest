@@ -1,4 +1,4 @@
-from pyresttest.common_test import CommonTest
+from notest.common_test import CommonTest
 OPERATIONS = dict()
 
 

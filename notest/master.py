@@ -4,22 +4,22 @@ import os
 import json
 import logging
 import threading
-from pyresttest.lib.utils import templated_var
-from pyresttest.http_test_exec import run_http_test
-from pyresttest.lib.utils import read_test_file
-from pyresttest.operations import get_operation_function
-from pyresttest.test_result import TestResult
+from notest.lib.utils import templated_var
+from notest.http_test_exec import run_http_test
+from notest.lib.utils import read_test_file
+from notest.operations import get_operation_function
+from notest.test_result import TestResult
 
 ESCAPE_DECODING = 'unicode_escape'
 
 sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))))
-from pyresttest.context import Context
-from pyresttest.generators import parse_generator
-from pyresttest.operations import Operation
-from pyresttest.lib.parsing import flatten_dictionaries, lowercase_keys, \
+from notest.context import Context
+from notest.generators import parse_generator
+from notest.operations import Operation
+from notest.lib.parsing import flatten_dictionaries, lowercase_keys, \
     safe_to_bool, safe_to_json
-from pyresttest.http_test import HttpTest, DEFAULT_TIMEOUT
+from notest.http_test import HttpTest, DEFAULT_TIMEOUT
 
 
 """
@@ -32,7 +32,7 @@ Module responsibilities:
 - Perform analysis on benchmark results
 """
 
-logger = logging.getLogger('pyresttest.master')
+logger = logging.getLogger('notest.master')
 
 
 DIR_LOCK = threading.RLock()  # Guards operations changing the working directory

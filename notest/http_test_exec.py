@@ -3,19 +3,19 @@ import sys
 import os
 import traceback
 import logging
-from pyresttest.clients.http_client import HttpClient
-from pyresttest.http_test import HttpTestResult, parse_headers, HttpTest
+from notest.clients.http_client import HttpClient
+from notest.http_test import HttpTestResult, parse_headers, HttpTest
 
 ESCAPE_DECODING = 'unicode_escape'
 
 sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))))
-from pyresttest.context import Context
-from pyresttest import validators
+from notest.context import Context
+from notest import validators
 
-from pyresttest.validators import Failure
+from notest.validators import Failure
 
-logger = logging.getLogger('pyresttest.http_test')
+logger = logging.getLogger('notest.http_test')
 
 
 HEADER_ENCODING = 'ISO-8859-1'  # Per RFC 2616

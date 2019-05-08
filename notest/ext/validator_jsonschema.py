@@ -3,9 +3,9 @@ import json
 import yaml
 import jsonschema
 
-from pyresttest import validators
-from pyresttest.lib import parsing
-from pyresttest import contenthandling
+from notest import validators
+from notest.lib import parsing
+from notest import contenthandling
 
 
 class JsonSchemaValidator(validators.AbstractValidator):

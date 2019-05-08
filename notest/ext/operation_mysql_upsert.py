@@ -1,7 +1,7 @@
 import json
 
-from pyresttest.lib.utils import templated_var
-from pyresttest.lib.mysql_lib import MysqlClient
+from notest.lib.utils import templated_var
+from notest.lib.mysql_lib import MysqlClient
 
 '''
 - operation:

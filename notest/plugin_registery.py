@@ -8,9 +8,9 @@ ESCAPE_DECODING = 'unicode_escape'
 
 sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))))
-from pyresttest import generators
-from pyresttest import validators
-from pyresttest import operations
+from notest import generators
+from notest import validators
+from notest import operations
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -72,19 +72,3 @@ def auto_load_ext(ext_dir=os.path.join(BASE_DIR, "ext")):
 
 
 auto_load_ext(ext_dir=os.path.join(BASE_DIR, "ext"))
-
-# AUTOIMPORTS, these should run just before the main method, to ensure
-# everything else is loaded
-# try:
-#     import jsonschema
-#     register_extensions('pyresttest.ext.validator_jsonschema')
-# except ImportError as ie:
-#     logging.debug(
-#         "Failed to load jsonschema validator, make sure the jsonschema module is installed if you wish to use schema validators.")
-#
-# try:
-#     import jmespath
-#     register_extensions('pyresttest.ext.extractor_jmespath')
-# except ImportError as ie:
-#     logging.debug(
-#         "Failed to load jmespath extractor, make sure the jmespath module is installed if you wish to use jmespath extractor.")

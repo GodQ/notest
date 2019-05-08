@@ -1,6 +1,6 @@
 import os
 
-from pyresttest.lib.parsing import *
+from notest.lib.parsing import *
 
 # Python 2/3 switches
 PYTHON_MAJOR_VERSION = sys.version_info[0]

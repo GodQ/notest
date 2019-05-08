@@ -5,9 +5,9 @@ import json
 
 logger = logging.Logger("mysql_generator")
 
-from pyresttest.lib.mysql_lib import MysqlClient
-from pyresttest.lib.utils import templated_var
-from pyresttest import generators
+from notest.lib.mysql_lib import MysqlClient
+from notest.lib.utils import templated_var
+from notest import generators
 
 
 '''

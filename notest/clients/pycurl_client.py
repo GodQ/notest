@@ -1,5 +1,5 @@
 import pycurl
-from pyresttest.import_base import *
+from notest.import_base import *
 from .http_auth_type import HttpAuthType
 from .http_response import HttpResponse
 

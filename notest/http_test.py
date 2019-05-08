@@ -2,14 +2,15 @@ import json
 import logging
 import string
 
-logger = logging.getLogger('pyresttest.http_test')
+logger = logging.getLogger('notest.http_test')
 
-from pyresttest.clients.http_client import HttpClient
-from pyresttest.clients.http_auth_type import HttpAuthType
-from pyresttest.lib.utils import templated_var
-from pyresttest.test_result import TestResult
-from pyresttest.common_test import CommonTest
-from pyresttest.lib.parsing import lowercase_keys, flatten_dictionaries, safe_to_bool
+from notest.clients.http_client import HttpClient
+from notest.clients.http_auth_type import HttpAuthType
+from notest.lib.utils import templated_var
+from notest.test_result import TestResult
+from notest.common_test import CommonTest
+from notest.lib.parsing import lowercase_keys, flatten_dictionaries, safe_to_bool
+import notest.validators as validators
 
 """
 Pull out the Test objects and logic associated with them

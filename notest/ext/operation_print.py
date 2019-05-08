@@ -1,4 +1,4 @@
-from pyresttest.lib.utils import templated_var
+from notest.lib.utils import templated_var
 
 '''
 - operation:
