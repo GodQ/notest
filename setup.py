@@ -18,7 +18,7 @@ for i, pkg in enumerate(uninstalled_pkgs):
         del uninstalled_pkgs[i]
 
 setuptools.setup(name='notest',
-      version='0.0.3',
+      version='0.0.4',
       description='Not Only Test! One Excellent Python Testing Tool',
       long_description='Not Only Test! One Excellent Python Testing Tool.',
       author='Chuanhao Qu',
@@ -41,7 +41,7 @@ setuptools.setup(name='notest',
       install_requires=install_requires,
       dependency_links=dependency_links,
       include_package_data=True,
-      zip_safe=False,
+      zip_safe=True,
       entry_points={
         'console_scripts': [
             'notest = notest.main:command_line_run',
