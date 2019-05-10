@@ -1,0 +1,44 @@
+- config:
+     testset: "Quickstart app tests"
+     variable_binds:
+        host1: 'http://localhost:5000'
+        host2: 'http://localhost:5000'
+        task_id: 1
+        title: 'Gaius-Test'
+        done: 'true'
+        mysql_config: '{"user": "root", "password": "password", "host": "192.168.99.101", "database": "test"}'
+     default_base_url: '$host1'
+
+- test:
+     group: "Quickstart"
+     name: "clear all"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     url: "/clear_all"
+     method: "POST"
+     expected_status: [204]
+
+- test:
+     group: "Quickstart"
+     name: "post"
+     url: "/tasks"
+     method: "POST"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     body: '{"title": "$name", "id": $task_id, "done": $done}'
+     expected_status: [201]
+     extract_binds:
+        - post_task_title:
+            mysql:
+              query: 'select name from sites limit 1'
+              config: '$mysql_config'
+
+- operation:
+     type: "print_operation"
+     print: '$post_task_title'
+
+- test:
+     group: "Quickstart"
+     name: "clear all"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     url: "/clear_all"
+     method: "POST"
+     expected_status: [204]

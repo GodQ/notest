@@ -1,0 +1,12 @@
+
+- config:
+     testset: "Quickstart github search test"
+     default_base_url: 'https://github.com'
+
+- test:
+     group: "Quickstart"
+     name: "Basic get"
+     headers: {'Content-Type': 'text/html; charset=utf-8'}
+     url: "/search?q=notest&type=Topics"
+     method: "GET"
+     expected_status: [200]

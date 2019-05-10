@@ -1,0 +1,29 @@
+
+---
+- config:
+     testset: "Quickstart app tests"
+     variable_binds:
+        host1: 'http://localhost:5000'
+        host2: 'http://localhost:5000'
+        task_id: 1
+        title: 'Gaius-Test'
+        done: 'true'
+        mysql_config: '{"user": "root", "password": "password", "host": "192.168.99.101", "database": "test"}'
+     default_base_url: '$host1'
+
+- test:
+     group: "Quickstart"
+     name: "post"
+     url: "/tasks"
+     method: "POST"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     body: '{"title": "title", "id": $task_id, "done": $done}'
+     expected_status: [201]
+     validators:
+        - compare:
+             jsonpath_mini: "info.0.id"
+             comparator: "str_eq"
+             expected:
+                mysql:
+                  query: 'select name from sites limit 1'
+                  config: '$mysql_config'

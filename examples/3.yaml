@@ -1,0 +1,81 @@
+
+---
+- config:
+     testset: "Quickstart app tests"
+     variable_binds:
+        host1: 'http://localhost:5000'
+        host2: 'http://localhost:5000'
+        task_id: 1
+        title: 'Gaius-Test'
+        done: 'true'
+        mysql_config: '{"user": "root", "password": "password", "host": "192.168.99.101", "database": "test"}'
+     default_base_url: '$host1'
+    # Generators to use in the test set
+     generators:
+        - task_id: {type: 'number_sequence', start: 10}
+        - task_name:
+            type: 'mysql'
+            query: 'select name from sites'
+            config: '$mysql_config'
+- test:
+     group: "Quickstart"
+     name: "clear all"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     url: "/clear_all"
+     method: "POST"
+     expected_status: [204]
+
+- test:
+     generator_binds:
+        - task_id: task_id
+        - name: task_name
+     group: "Quickstart"
+     name: "post"
+     url: "$host2/tasks"
+     method: "POST"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     body: '{"title": "$name", "id": $task_id, "done": $done}'
+     expected_status: [201]
+
+- test:
+     generator_binds:
+        - task_id: task_id
+        - name: task_name
+     group: "Quickstart"
+     name: "post"
+     url: "http://localhost:5000/tasks"
+     method: "POST"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     body: '{"title": "$name", "id": $task_id, "done": $done}'
+     expected_status: [201]
+     validators:
+        # Test key does not exist
+        - extract_test: {jsonpath_mini: "info.0.title", test: "exists"}
+        - compare:
+             jsonpath_mini: "info.0.id"
+             comparator: "str_eq"
+             expected:
+                mysql:
+                  query: 'select name from sites limit 1'
+                  config: '$mysql_config'
+     extract_binds:
+        - post_task_id: {jsonpath_mini: 'info.0.id'}
+        - post_task_title:
+            mysql:
+              query: 'select name from sites limit 1'
+              config: '$mysql_config'
+
+- test:
+     group: "Quickstart"
+     name: "get"
+     headers: {'Content-Type': 'application/text', "Token": 123}
+     url: "/task/$post_task_id"
+     method: "GET"
+     expected_status: [200]
+     validators:
+        # Test key does not exist
+        - compare:
+             jsonpath_mini: "info.0.id"
+             comparator: "str_eq"
+             expected: '$post_task_title'
+
