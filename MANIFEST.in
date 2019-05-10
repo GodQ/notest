@@ -2,3 +2,6 @@ include *.yaml
 include LICENSE
 global-exclude *.pyc
 include setup.py
+recursive-include docs *.md
+include README.md requirements.txt
+recursive-include tools

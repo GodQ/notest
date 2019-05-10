@@ -17,11 +17,8 @@ for i, pkg in enumerate(uninstalled_pkgs):
         dependency_links.append(pkg.lstrip("-e").strip())
         del uninstalled_pkgs[i]
 
-
-dependencies = ['pyyaml', 'pycurl', 'requests', 'jsonpath','jmespath']
-
 setuptools.setup(name='notest',
-      version='0.0.1',
+      version='0.0.3',
       description='Not Only Test! One Excellent Python Testing Tool',
       long_description='Not Only Test! One Excellent Python Testing Tool.',
       author='Chuanhao Qu',
@@ -47,7 +44,7 @@ setuptools.setup(name='notest',
       zip_safe=False,
       entry_points={
         'console_scripts': [
-            'notest = notest.main',
+            'notest = notest.main:command_line_run',
         ],
       },
 )

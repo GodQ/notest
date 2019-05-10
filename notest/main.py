@@ -4,6 +4,7 @@ import os
 import logging
 from optparse import OptionParser
 from notest.lib.utils import read_test_file
+
 sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))))
 from notest.lib.parsing import safe_to_bool
@@ -122,11 +123,12 @@ def parse_command_line_args(args_in):
     return args
 
 
-def command_line_run(args_in):
+def command_line_run():
+    args_in = sys.argv[1:]
     args = parse_command_line_args(args_in)
     main(args)
 
 
 # Allow import into another module without executing the main method
-if (__name__ == '__main__'):
-    command_line_run(sys.argv[1:])
+if __name__ == '__main__':
+    command_line_run()
