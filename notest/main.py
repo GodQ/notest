@@ -72,6 +72,9 @@ def main(args):
         if 'ext_dir' in args and args['ext_dir'] is not None:
             auto_load_ext(args['ext_dir'])
 
+        if 'default_url' in args and args['default_url'] is not None:
+            t.config.set_default_base_url(args['default_url'])
+
         if 'skip_term_colors' in args and args[
             'skip_term_colors'] is not None:
             t.config.skip_term_colors = safe_to_bool(
@@ -101,6 +104,10 @@ def parse_command_line_args(args_in):
                       help='local extensions dir',
                       action='store',
                       dest="ext_dir")
+    parser.add_option('--default-url',
+                      help='default url',
+                      action='store',
+                      dest="default_url")
     parser.add_option('--skip_term_colors',
                       help='Turn off the output term colors',
                       action='store_true', default=False,

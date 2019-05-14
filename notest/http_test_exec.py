@@ -75,7 +75,7 @@ def run_http_test(mytest, test_config, context=None,
 
     # Retrieve Headers
     headers = http_response.headers
-    if headers and not isinstance(headers, list):
+    if headers and isinstance(headers, bytes):
         headers = str(headers, HEADER_ENCODING)  # Per RFC 2616
         # Parse HTTP headers
         try:
@@ -90,6 +90,20 @@ def run_http_test(mytest, test_config, context=None,
                     failure_type=validators.FAILURE_TEST_EXCEPTION))
             result.passed = False
             return result
+    elif headers and isinstance(headers, list):
+        pass
+    elif headers and isinstance(headers, dict):
+        pass
+    else:
+        error = "Unknown Header Type: {}".format(type(headers))
+        error_detail = "Unknown Header Type: {} {}".format(type(headers), headers)
+        result.failures.append(
+            Failure(
+                message=error,
+                details=error_detail,
+                failure_type=validators.FAILURE_TEST_EXCEPTION))
+        result.passed = False
+        return result
     result.response_headers = headers
     response_code = http_response.status_code
     result.response_code = response_code

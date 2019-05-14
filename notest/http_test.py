@@ -1,6 +1,7 @@
 import json
 import logging
 import string
+from email import message_from_string
 
 logger = logging.getLogger('notest.http_test')
 
@@ -219,9 +220,6 @@ class HttpTest(CommonTest):
                 result = value.extract(
                     body=response_body, headers=headers, context=context)
                 context.bind_variable(key, result)
-
-    def __str__(self):
-        return json.dumps(self, default=safe_to_json)
 
     def realize(self, context=None):
         if not context:

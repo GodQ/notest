@@ -7,7 +7,6 @@ import re
 
 # Local module imports
 from notest.lib import parsing
-from past.builtins import long
 from notest.lib.utils import templated_var
 
 """
@@ -58,8 +57,8 @@ COMPARATORS['length_eq'] = COMPARATORS['count_eq']
 TYPES = {
     'null': type(None),
     'none': type(None),
-    'number': (int, long, float),
-    'int': (int, long),
+    'number': (int, float),
+    'int': int,
     'float': float,
     'boolean': bool,
     'string': str,
@@ -67,7 +66,7 @@ TYPES = {
     'list': list,
     'dict': dict,
     'map': dict,
-    'scalar': (bool, int, long, float, str, type(None)),
+    'scalar': (bool, int, float, str, type(None)),
     'collection': (list, dict, set)
 }
 
@@ -398,8 +397,7 @@ class ComparatorValidator(AbstractValidator):
         # Expected value can be another extractor query, or a single value, or
         # a templated value
 
-        if isinstance(expected, str) or isinstance(expected, (
-        int, long, float, complex)):
+        if isinstance(expected, str) or isinstance(expected, (int, float, complex)):
             output.expected = expected
         elif isinstance(expected, dict):
             expected = parsing.lowercase_keys(expected)

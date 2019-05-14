@@ -1,24 +1,25 @@
 import pycurl
-from notest.import_base import *
+import os
+import sys
+import copy
+from io import BytesIO
 from .http_auth_type import HttpAuthType
 from .http_response import HttpResponse
 
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
-libcurl_dir = os.path.join(base_dir, "..", "..", "tools", "libcurl_win64")
-
-if sys.platform.find("win") > -1:
-    sys.path.append(libcurl_dir)
+libcurl_crt_file = os.path.join(base_dir, "..", "..", "tools", "curl-ca-bundle.crt")
 
 
 DEFAULT_TIMEOUT = 10  # Seconds
 # Map HTTP method names to curl methods
 # Kind of obnoxious that it works this way...
-HTTP_METHODS = {u'GET': pycurl.HTTPGET,
-                u'PUT': pycurl.UPLOAD,
-                u'PATCH': pycurl.POSTFIELDS,
-                u'POST': pycurl.POST,
-                u'DELETE': 'DELETE'}
+HTTP_METHODS = {'GET': pycurl.HTTPGET,
+                'PUT': pycurl.UPLOAD,
+                'PATCH': pycurl.POSTFIELDS,
+                'POST': pycurl.POST,
+                'HEAD': "",
+                'DELETE': 'DELETE'}
 
 
 HttpAuthType_Map = {
@@ -65,65 +66,67 @@ class PyCurlClient:
         else:
             curl = self.handler
 
-        # curl.setopt(pycurl.VERBOSE, 1)  # Debugging convenience
         curl.setopt(curl.URL, str(test_obj.url))
         curl.setopt(curl.TIMEOUT, timeout)
 
         is_unicoded = False
-        bod = test_obj.body
-        if isinstance(bod, text_type):  # Encode unicode
-            bod = bod.encode('UTF-8')
+        _body = test_obj.body
+        if isinstance(_body, str):  # Encode unicode
+            _body = _body.encode('UTF-8')
             is_unicoded = True
 
         # Set read function for post/put bodies
-        if bod and len(bod) > 0:
-            curl.setopt(curl.READFUNCTION, MyIO(bod).read)
+        if _body and len(_body) > 0:
+            curl.setopt(curl.READFUNCTION, BytesIO(_body).read)
 
         if test_obj.auth_username and test_obj.auth_password:
-            curl.setopt(pycurl.USERPWD,
-                        parsing.encode_unicode_bytes(
-                            test_obj.auth_username) + b':' +
-                        parsing.encode_unicode_bytes(test_obj.auth_password))
+            auth_username = test_obj.auth_username
+            auth_password = test_obj.auth_password
+            if isinstance(auth_username, str):
+                auth_username = auth_username.encode()
+            if isinstance(auth_password, str):
+                auth_password = auth_password.encode()
+            curl.setopt(pycurl.USERPWD, auth_username + b':' + auth_password)
             if test_obj.auth_type:
                 auth_type = HttpAuthType_Map[test_obj.auth_type]
                 curl.setopt(pycurl.HTTPAUTH, auth_type)
 
         if test_obj.method == u'POST':
-            curl.setopt(HTTP_METHODS[u'POST'], 1)
+            curl.setopt(pycurl.POST, 1)
             # Required for some servers
-            if bod is not None:
-                curl.setopt(pycurl.POSTFIELDSIZE, len(bod))
+            if _body is not None:
+                curl.setopt(pycurl.POSTFIELDSIZE, len(_body))
             else:
                 curl.setopt(pycurl.POSTFIELDSIZE, 0)
         elif test_obj.method == u'PUT':
-            curl.setopt(HTTP_METHODS[u'PUT'], 1)
+            curl.setopt(pycurl.UPLOAD, 1)
             # Required for some servers
-            if bod is not None:
-                curl.setopt(pycurl.INFILESIZE, len(bod))
+            if _body is not None:
+                curl.setopt(pycurl.INFILESIZE, len(_body))
             else:
                 curl.setopt(pycurl.INFILESIZE, 0)
         elif test_obj.method == u'PATCH':
-            curl.setopt(curl.POSTFIELDS, bod)
+            curl.setopt(curl.POSTFIELDS, _body)
             curl.setopt(curl.CUSTOMREQUEST, 'PATCH')
             # Required for some servers
             # I wonder: how compatible will this be?  It worked with Django but feels iffy.
-            if bod is not None:
-                curl.setopt(pycurl.INFILESIZE, len(bod))
+            if _body is not None:
+                curl.setopt(pycurl.INFILESIZE, len(_body))
             else:
                 curl.setopt(pycurl.INFILESIZE, 0)
         elif test_obj.method == u'DELETE':
             curl.setopt(curl.CUSTOMREQUEST, 'DELETE')
-            if bod is not None:
-                curl.setopt(pycurl.POSTFIELDS, bod)
-                curl.setopt(pycurl.POSTFIELDSIZE, len(bod))
+            if _body is not None:
+                curl.setopt(pycurl.POSTFIELDS, _body)
+                curl.setopt(pycurl.POSTFIELDSIZE, len(_body))
         elif test_obj.method == u'HEAD':
             curl.setopt(curl.NOBODY, 1)
             curl.setopt(curl.CUSTOMREQUEST, 'HEAD')
         elif test_obj.method and test_obj.method.upper() != 'GET':  # Alternate HTTP methods
             curl.setopt(curl.CUSTOMREQUEST, test_obj.method.upper())
-            if bod is not None:
-                curl.setopt(pycurl.POSTFIELDS, bod)
-                curl.setopt(pycurl.POSTFIELDSIZE, len(bod))
+            if _body is not None:
+                curl.setopt(pycurl.POSTFIELDS, _body)
+                curl.setopt(pycurl.POSTFIELDSIZE, len(_body))
 
         # Template headers as needed and convert headers dictionary to list of header entries
         head = test_obj.get_headers(context=context)
@@ -147,23 +150,11 @@ class PyCurlClient:
         headers.append("Connection: close")
         curl.setopt(curl.HTTPHEADER, headers)
 
-        # Set custom curl options, which are KEY:VALUE pairs matching the pycurl option names
-        # And the key/value pairs are set
-        if test_obj.curl_options:
-            filterfunc = lambda x: x[0] is not None and x[
-                1] is not None  # Must have key and value
-            for (key, value) in ifilter(filterfunc,
-                                        test_obj.curl_options.items()):
-                # getattr to look up constant for variable name
-                curl.setopt(getattr(curl, key), value)
-
         # reset the body, it holds values from previous runs otherwise
-        headers = MyIO()
-        body = MyIO()
+        headers = BytesIO()
+        body = BytesIO()
         if sys.platform.find("win") > -1:
-            curl.setopt(pycurl.CAINFO,
-                        os.path.join(libcurl_dir,
-                                     "curl-ca-bundle.crt"))
+            curl.setopt(pycurl.CAINFO, libcurl_crt_file)
         curl.setopt(pycurl.WRITEFUNCTION, body.write)
         curl.setopt(pycurl.HEADERFUNCTION, headers.write)
         if verbose:

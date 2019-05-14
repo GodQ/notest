@@ -1,5 +1,4 @@
 pyyaml
-pycurl
 future 
 jmespath 
 jsonschema

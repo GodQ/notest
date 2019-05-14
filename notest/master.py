@@ -74,6 +74,9 @@ class TestConfig:
     variable_binds = None
     generators = None  # Map of generator name to generator function
 
+    def set_default_base_url(self, url):
+        self.variable_binds['default_base_url'] = url
+
     def __str__(self):
         return json.dumps(self, default=safe_to_json)
 
