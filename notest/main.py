@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import os
+import json
 import logging
 from optparse import OptionParser
 from notest.lib.utils import read_test_file
@@ -55,6 +56,22 @@ def main(args):
     test_file = args['test']
     test_structure = read_test_file(test_file)
 
+    config_file = None
+    if 'config' in args and args['config'] is not None:
+        config_file = args['config']
+    else:
+        config_file = "config.json"
+    if os.path.isfile(config_file):
+        with open(config_file, "r") as fd:
+            data = fd.read()
+            if isinstance(data, bytes):
+                data = data.decode()
+            data = json.loads(data)
+            for k, v in args.items():
+                if v:
+                    data[k] = v
+            args = data
+
     tests = parse_testsets(test_structure,
                            working_directory=os.path.dirname(test_file))
 
@@ -72,8 +89,8 @@ def main(args):
         if 'ext_dir' in args and args['ext_dir'] is not None:
             auto_load_ext(args['ext_dir'])
 
-        if 'default_url' in args and args['default_url'] is not None:
-            t.config.set_default_base_url(args['default_url'])
+        if 'default_base_url' in args and args['default_base_url'] is not None:
+            t.config.set_default_base_url(args['default_base_url'])
 
         if 'skip_term_colors' in args and args[
             'skip_term_colors'] is not None:
@@ -104,14 +121,18 @@ def parse_command_line_args(args_in):
                       help='local extensions dir',
                       action='store',
                       dest="ext_dir")
-    parser.add_option('--default-url',
-                      help='default url',
+    parser.add_option('--default-base-url',
+                      help='default base url',
                       action='store',
-                      dest="default_url")
+                      dest="default_base_url")
     parser.add_option('--skip_term_colors',
                       help='Turn off the output term colors',
                       action='store_true', default=False,
                       dest="skip_term_colors")
+    parser.add_option('--config',
+                      help='config file',
+                      action='store',
+                      dest="config")
 
     (args, unparsed_args) = parser.parse_args(args_in)
     args = vars(args)

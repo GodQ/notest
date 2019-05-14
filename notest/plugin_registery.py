@@ -58,6 +58,8 @@ def register_extensions(modules):
 
 
 def auto_load_ext(ext_dir=os.path.join(BASE_DIR, "ext")):
+    if not os.path.isdir(ext_dir):
+        return
     sys.path.append(ext_dir)
     for fname in os.listdir(ext_dir):
         path = os.path.join(ext_dir, fname)
