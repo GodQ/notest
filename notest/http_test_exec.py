@@ -3,7 +3,7 @@ import sys
 import os
 import traceback
 import logging
-from notest.clients.http_client import HttpClient
+from notest.clients.request_client import get_client_class
 from notest.http_test import HttpTestResult, parse_headers, HttpTest
 
 ESCAPE_DECODING = 'unicode_escape'
@@ -67,6 +67,7 @@ def run_http_test(mytest, test_config, context=None,
             e), details=trace,
             failure_type=validators.FAILURE_CURL_EXCEPTION))
         result.passed = False
+        HttpClient = get_client_class(mytest.global_config.request_client)
         HttpClient.close_handler(http_handler)
         return result
 

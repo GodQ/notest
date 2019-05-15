@@ -1,0 +1,6 @@
+{
+  "request_client": "pycurl",
+  "default_base_url": "http://10.241.0.117:5000",
+  "ext_dir": "ext",
+  "log": "debug"
+}

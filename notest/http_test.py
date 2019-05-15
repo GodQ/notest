@@ -5,7 +5,7 @@ from email import message_from_string
 
 logger = logging.getLogger('notest.http_test')
 
-from notest.clients.http_client import HttpClient
+from notest.clients.request_client import get_client_class
 from notest.clients.http_auth_type import HttpAuthType
 from notest.lib.utils import templated_var
 from notest.test_result import TestResult
@@ -236,6 +236,7 @@ class HttpTest(CommonTest):
         if not context:
             context = self.context
         self.realize(context)
+        HttpClient = get_client_class(self.global_config.request_client)
         self.http_client = HttpClient(handler)
         self.http_handler = self.http_client.get_handler()
         return self.http_client.send_request(
@@ -247,7 +248,7 @@ class HttpTest(CommonTest):
         )
 
     @classmethod
-    def parse_from_dict(cls, node, input_test=None, test_path=None):
+    def parse_from_dict(cls, node, input_test=None):
         """ Create or modify a test, input_test, using configuration in node, and base_url
         If no input_test is given, creates a new one
 

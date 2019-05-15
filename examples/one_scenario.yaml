@@ -39,6 +39,10 @@
      method: "GET"
      expected_status: [200]
 
+#- operation:
+#     type: "sleep_operation"
+#     seconds: 5
+
 - test:
      group: "Quickstart"
      name: "clear all"

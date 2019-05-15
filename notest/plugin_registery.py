@@ -65,7 +65,7 @@ def auto_load_ext(ext_dir=os.path.join(BASE_DIR, "ext")):
         path = os.path.join(ext_dir, fname)
         if os.path.isfile(path) and fname.endswith(".py") and \
                 fname != "__init__.py":
-            module_name = [fname.strip(".py")]
+            module_name = fname[:-3].split(os.path.sep)
             try:
                 register_extensions(".".join(module_name))
             except ImportError as e:

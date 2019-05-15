@@ -92,6 +92,9 @@ def main(args):
         if 'default_base_url' in args and args['default_base_url'] is not None:
             t.config.set_default_base_url(args['default_base_url'])
 
+        if 'request_client' in args and args['request_client'] is not None:
+            t.config.request_client = args['request_client']
+
         if 'skip_term_colors' in args and args[
             'skip_term_colors'] is not None:
             t.config.skip_term_colors = safe_to_bool(
@@ -109,9 +112,9 @@ def parse_command_line_args(args_in):
         usage="usage: %prog base_url test_filename.yaml [options] ")
     parser.add_option("--log", help="Logging level",
                       action="store", type="string")
-    parser.add_option("--interactive", help="Interactive mode",
+    parser.add_option("-i", "--interactive", help="Interactive mode",
                       action="store", type="string")
-    parser.add_option("--test", help="Test file to use",
+    parser.add_option("-t", "--test", help="Test file to use",
                       action="store", type="string")
     parser.add_option('--ssl-insecure',
                       help='Disable cURL host and peer cert verification',
@@ -121,7 +124,7 @@ def parse_command_line_args(args_in):
                       help='local extensions dir',
                       action='store',
                       dest="ext_dir")
-    parser.add_option('--default-base-url',
+    parser.add_option("-b", '--default-base-url',
                       help='default base url',
                       action='store',
                       dest="default_base_url")
@@ -129,7 +132,7 @@ def parse_command_line_args(args_in):
                       help='Turn off the output term colors',
                       action='store_true', default=False,
                       dest="skip_term_colors")
-    parser.add_option('--config',
+    parser.add_option("-c", '--config',
                       help='config file',
                       action='store',
                       dest="config")

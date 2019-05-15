@@ -61,6 +61,7 @@ class CD:
 class TestConfig:
     """ Configuration for a test run """
     timeout = DEFAULT_TIMEOUT  # timeout of tests, in seconds
+    request_client = "requests"  # requests or pycurl
     print_bodies = False  # Print response bodies in all cases
     print_headers = False  # Print response bodies in all cases
     retries = 0  # Retries on failures
@@ -195,9 +196,12 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
                 elif key == 'config' or key == 'configuration':
                     test_config = parse_configuration(
                         node[key], base_config=test_config)
+
     testset = TestSet()
     testset.tests = tests_list
     testset.config = test_config
+    for t in tests_list:
+        t.global_config = test_config
     testsets.append(testset)
     return testsets
 

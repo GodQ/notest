@@ -1,5 +1,0 @@
-{
-  "default_base_url": "http://localhost:5000",
-  "ext_dir": "ext",
-  "log": "debug"
-}
