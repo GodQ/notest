@@ -21,14 +21,15 @@ class JsonSchemaValidator(validators.AbstractValidator):
             # TODO try draft3/draft4 iter_errors -
             # https://python-jsonschema.readthedocs.org/en/latest/validate/#jsonschema.IValidator.iter_errors
             parsed_body = body
-            if PYTHON_MAJOR_VERSION > 2 and isinstance(body, bytes):
-                parsed_body = str(body, 'utf-8')
+            if isinstance(body, bytes):
+                parsed_body = body.decode()
             jsonschema.validate(json.loads(parsed_body), schema)
             return True
         except jsonschema.exceptions.ValidationError as ve:
             trace = traceback.format_exc()
             return validators.Failure(
-                message="JSON Schema Validation Failed", details=trace,
+                message="JSON Schema Validation Failed", 
+                details=trace,
                 validator=self,
                 failure_type=validators.FAILURE_VALIDATOR_EXCEPTION)
 

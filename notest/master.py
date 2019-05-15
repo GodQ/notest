@@ -2,6 +2,7 @@
 import sys
 import os
 import json
+import time
 import logging
 import threading
 from notest.lib.utils import templated_var
@@ -243,12 +244,15 @@ def run_testsets(testsets):
         myinteractive = True if myinteractive or myconfig.interactive else False
 
         # Run tests, collecting statistics as needed
-        for test in mytests:
+        index = 0
+        while index < len(mytests):
+            test = mytests[index]
             # Initialize the dictionaries to store test fail counts and results
             if test.group not in group_results:
                 group_results[test.group] = list()
                 group_failure_counts[test.group] = 0
 
+            result = None
             if test.test_type == "http_test":
                 result = run_http_test(test, test_config=myconfig, context=context,
                                        http_handler=curl_handle)
@@ -312,6 +316,17 @@ def run_testsets(testsets):
                 except Exception as e:
                     result.passed = False
                 group_results[test.group].append(result)
+
+            if result and result.loop is True:
+                if hasattr(test.global_config, "loop_interval"):
+                    loop_interval = test.global_config.loop_interval
+                else:
+                    loop_interval = 2
+                time.sleep(loop_interval)
+                continue
+            else:
+                index += 1
+                continue
 
     if myinteractive:
         # a break for when interactive bits are complete, before summary data

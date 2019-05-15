@@ -239,6 +239,41 @@ generators:
 ```
 从而task id每次都是随机int，而title每次都是随机大写字母字符串
 
+### 使用loop until循环执行功能
+很多任务处理时间较长的情况下，api会设计为post+get的异步方式。post一个任务，get用来查询任务状态。此时，测试用例会设计成一个post+若干个get的形式，每次get后判断返回值是否满足某些添加而确定是否继续执行。
+针对这种情况，notest提供了test中的loop_until关键字来实现。参考[使用loop until循环执行功能](../examples/use_test_loop_until.yaml)在test中定义loop_until条件：
+```yaml
+- test:
+    name: "post ready task"
+    url: "/delay_task"
+    method: "POST"
+    expected_status: [201]
+
+- test:
+     name: "get ready task"
+     url: "/delay_task"
+     method: "GET"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     expected_status: [200]
+     loop_until:
+        - compare:
+             jsonpath_mini: "state"
+             comparator: "str_eq"
+             expected: 'ready'
+```
+loop_until调用validators实现条件判断，所以格式与validators完全一致。允许多个条件，只有所有条件都满足才会跳出循环继续下一个test。
+
+### 按需sleep
+针对上面的post+get类型的case，如果可以确定在某个时间内会处理完成，那可以使用sleep_operation来实现。使用方式如下：
+```yaml
+- operation:
+     type: "sleep_operation"
+     seconds: 5
+```
+将该operation放在post和get两个test中间即可。
+
+
+
 ## 来一个综合测试用例
 ```yaml
 - config:

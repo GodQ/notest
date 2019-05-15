@@ -1,0 +1,36 @@
+- config:
+     testset: "Quickstart app tests"
+     variable_binds:
+        title: 'Gaius-Test'
+        done: 'true'
+     default_base_url: 'http://localhost:5000'
+    # Generators to use in the test set
+     generators:
+        # Generator named 'id' that counts up from 10
+        - 'id': {type: 'number_sequence', start: 10}
+
+- test:
+    name: "post ready task"
+    url: "/delay_task"
+    method: "POST"
+    expected_status: [201]
+
+- test:
+     name: "get ready task"
+     url: "/delay_task"
+     method: "GET"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     expected_status: [200]
+     loop_until:
+        - compare:
+             jsonpath_mini: "state"
+             comparator: "str_eq"
+             expected: 'ready'
+
+- test:
+     group: "Quickstart"
+     name: "clear all"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     url: "/clear_all"
+     method: "POST"
+     expected_status: [204]

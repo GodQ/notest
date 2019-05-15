@@ -128,12 +128,12 @@ def run_http_test(mytest, test_config, context=None,
 
     headers = result.response_headers
 
-    # execute validator on body
+    # execute validator
     if result.passed is True:
         body = result.body
         if mytest.validators is not None and isinstance(mytest.validators,
                                                         list):
-            logger.debug("executing this many validators: " +
+            logger.debug("executing validators: " +
                          str(len(mytest.validators)))
             failures = result.failures
             for validator in mytest.validators:
@@ -143,7 +143,7 @@ def run_http_test(mytest, test_config, context=None,
                     result.passed = False
                 # Proxy for checking if it is a Failure object, because of
                 # import issues with isinstance there
-                if hasattr(validate_result, 'details'):
+                if isinstance(validate_result, validators.Failure):
                     failures.append(validate_result)
                 # TODO add printing of validation for interactive mode
         else:
@@ -151,6 +151,22 @@ def run_http_test(mytest, test_config, context=None,
 
         # Only do context updates if test was successful
         mytest.update_context_after(result.body, headers)
+
+    # execute loop_until_conditions
+    if result.passed is True:
+        body = result.body
+        if mytest.loop_until_conditions is not None and isinstance(mytest.loop_until_conditions, list):
+            logger.debug("executing loop_until_conditions: " +
+                         str(len(mytest.loop_until_conditions)))
+            result.loop = False
+            for validator in mytest.loop_until_conditions:
+                validate_result = validator.validate(
+                    body=body, headers=headers, context=my_context)
+                if isinstance(validate_result, validators.Failure):
+                    result.loop = True
+                    logger.error(validate_result)
+        else:
+            logger.debug("no loop_until_conditions found")
 
     # Print response body if override is set to print all *OR* if test failed
     # (to capture maybe a stack trace)

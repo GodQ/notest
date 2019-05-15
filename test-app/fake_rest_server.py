@@ -261,6 +261,30 @@ def echo_request_body():
     return body, 200
 
 
+ready_time = None
+@app.route('/delay_task', methods=['GET', 'POST'])
+def delay_task():
+    global ready_time
+    print("Parameters: ", request.args)
+    print("Headers: ", request.headers)
+    print("Body: ", request.data)
+
+    if request.method == "GET":
+        if time.time() > ready_time:
+            resp = {"state": "ready"}
+            print(resp)
+            return jsonify(resp), 200
+        else:
+            resp = {"state": "running"}
+            print(resp)
+            return jsonify(resp), 200
+    elif request.method == "POST":
+        ready_time = time.time() + 5
+        resp = {"state": "ok"}
+        print(resp)
+        return jsonify(resp), 201
+
+
 if __name__ == '__main__':
     # app.run(debug=True, port=5000, host='0.0.0.0', ssl_context='adhoc')
     app.run(debug=True, port=5000, host='0.0.0.0')

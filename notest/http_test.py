@@ -77,6 +77,7 @@ class HttpTestResult(TestResult):
     passed = False
     response_headers = None
     failures = None
+    loop = False
 
     def __init__(self):
         self.failures = list()
@@ -126,6 +127,7 @@ class HttpTest(CommonTest):
     group = 'Default'
     name = 'Unnamed'
     validators = None  # Validators for response body, IE regexes, etc
+    loop_until_conditions = None
     stop_on_failure = True
     failures = None
     auth_username = None
@@ -358,6 +360,24 @@ class HttpTest(CommonTest):
                         validator = validators.parse_validator(
                             validator_type, validator_config)
                         mytest.validators.append(validator)
+
+            elif configelement == 'loop_until':
+                # Add a list of validators
+                if not isinstance(configvalue, list):
+                    raise Exception(
+                        'Misconfigured validator section, must be a list of validators')
+                if mytest.loop_until_conditions is None:
+                    mytest.loop_until_conditions = list()
+
+                # create validator and add to list of validators
+                for var in configvalue:
+                    if not isinstance(var, dict):
+                        raise TypeError(
+                            "Validators must be defined as validatorType:{configs} ")
+                    for validator_type, validator_config in var.items():
+                        validator = validators.parse_validator(
+                            validator_type, validator_config)
+                        mytest.loop_until_conditions.append(validator)
 
             elif configelement == 'headers':  # HTTP headers to use, flattened to a single string-string dictionary
                 configvalue = flatten_dictionaries(configvalue)

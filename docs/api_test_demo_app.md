@@ -109,3 +109,7 @@ response为：
 
 #### POST  /clear_all
 删除所有tasks
+
+### POST/GET /delay_task
+post结果为给全局变量ready_time赋值为当前时间+5s
+get结果为若当前时间超过ready_time则返回state ready， 否则state为running
