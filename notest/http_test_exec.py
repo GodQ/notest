@@ -67,7 +67,10 @@ def run_http_test(mytest, test_config, context=None,
             e), details=trace,
             failure_type=validators.FAILURE_CURL_EXCEPTION))
         result.passed = False
-        HttpClient = get_client_class(mytest.global_config.request_client)
+        client = mytest.testset_config.request_client
+        if not client:
+            client = "requests"
+        HttpClient = get_client_class(client)
         HttpClient.close_handler(http_handler)
         return result
 

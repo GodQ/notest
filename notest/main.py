@@ -72,11 +72,11 @@ def main(args):
                     data[k] = v
             args = data
 
-    tests = parse_testsets(test_structure,
+    testsets = parse_testsets(test_structure,
                            working_directory=os.path.dirname(test_file))
 
     # Override configs from command line if config set
-    for t in tests:
+    for t in testsets:
         if 'interactive' in args and args['interactive'] is not None:
             t.config.interactive = safe_to_bool(args['interactive'])
 
@@ -92,8 +92,11 @@ def main(args):
         if 'default_base_url' in args and args['default_base_url'] is not None:
             t.config.set_default_base_url(args['default_base_url'])
 
-        if 'request_client' in args and args['request_client'] is not None:
+        if 'request_client' in args and args['request_client'] is not None and not t.config.request_client:
             t.config.request_client = args['request_client']
+
+        if 'loop_interval' in args and args['loop_interval']:
+            t.config.loop_interval = int(args['loop_interval'])
 
         if 'skip_term_colors' in args and args[
             'skip_term_colors'] is not None:
@@ -101,7 +104,7 @@ def main(args):
                 args['skip_term_colors'])
 
     # Execute all testsets
-    failures = run_testsets(tests)
+    failures = run_testsets(testsets)
 
     sys.exit(failures)
 
@@ -136,6 +139,14 @@ def parse_command_line_args(args_in):
                       help='config file',
                       action='store',
                       dest="config")
+    parser.add_option("-l", '--loop_interval',
+                      help='loop_interval',
+                      action='store',
+                      dest="loop_interval")
+    parser.add_option("-r", '--request_client',
+                      help='request_client',
+                      action='store',
+                      dest="request_client")
 
     (args, unparsed_args) = parser.parse_args(args_in)
     args = vars(args)

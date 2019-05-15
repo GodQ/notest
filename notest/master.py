@@ -62,7 +62,7 @@ class CD:
 class TestConfig:
     """ Configuration for a test run """
     timeout = DEFAULT_TIMEOUT  # timeout of tests, in seconds
-    request_client = "requests"  # requests or pycurl
+    request_client = None  # requests or pycurl
     print_bodies = False  # Print response bodies in all cases
     print_headers = False  # Print response bodies in all cases
     retries = 0  # Retries on failures
@@ -127,6 +127,8 @@ def parse_configuration(node, base_config=None):
             test_config.retries = int(value)
         elif key == 'variable_binds':
             pass
+        elif key == 'request_client':
+            test_config.request_client = str(value)
         elif key == 'generators':
             flat = flatten_dictionaries(value)
             gen_map = dict()
@@ -202,7 +204,7 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
     testset.tests = tests_list
     testset.config = test_config
     for t in tests_list:
-        t.global_config = test_config
+        t.testset_config = test_config
     testsets.append(testset)
     return testsets
 
@@ -245,8 +247,16 @@ def run_testsets(testsets):
 
         # Run tests, collecting statistics as needed
         index = 0
-        while index < len(mytests):
+        loop_count = 0
+
+        while index < len(mytests) and loop_count < 100:
             test = mytests[index]
+            if hasattr(test.testset_config, "loop_interval"):
+                loop_interval = test.testset_config.loop_interval
+            else:
+                loop_interval = 2
+            print(loop_count, loop_interval)
+
             # Initialize the dictionaries to store test fail counts and results
             if test.group not in group_results:
                 group_results[test.group] = list()
@@ -293,7 +303,8 @@ def run_testsets(testsets):
                     logger.info("\n".join(msg))
 
                 # Add results for this test group to the resultset
-                group_results[test.group].append(result)
+                if not result.passed or result.loop is False:
+                    group_results[test.group].append(result)
 
                 # handle stop_on_failure flag
                 if not result.passed and test.stop_on_failure is not None and test.stop_on_failure:
@@ -315,13 +326,10 @@ def run_testsets(testsets):
                     result.passed = True
                 except Exception as e:
                     result.passed = False
-                group_results[test.group].append(result)
+                # group_results[test.group].append(result)
 
             if result and result.loop is True:
-                if hasattr(test.global_config, "loop_interval"):
-                    loop_interval = test.global_config.loop_interval
-                else:
-                    loop_interval = 2
+                loop_count += 1
                 time.sleep(loop_interval)
                 continue
             else:
@@ -338,7 +346,7 @@ def run_testsets(testsets):
         failures = group_failure_counts[group]
         total_failures = total_failures + failures
 
-        passfail = {True: u'SUCCEEDED: ', False: u'FAILED: '}
+        passfail = {True: 'SUCCEEDED: ', False: 'FAILED: '}
         output_string = "Test Group {0} {1}: {2}/{3} Tests Passed!".format(
             group, passfail[failures == 0], str(test_count - failures),
             str(test_count))

@@ -238,7 +238,11 @@ class HttpTest(CommonTest):
         if not context:
             context = self.context
         self.realize(context)
-        HttpClient = get_client_class(self.global_config.request_client)
+
+        client = self.testset_config.request_client
+        if not client:
+            client = "requests"
+        HttpClient = get_client_class(client)
         self.http_client = HttpClient(handler)
         self.http_handler = self.http_client.get_handler()
         return self.http_client.send_request(

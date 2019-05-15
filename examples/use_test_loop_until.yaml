@@ -22,13 +22,13 @@
      headers: {'Content-Type': 'application/json', "Token": 123}
      expected_status: [200]
      loop_until:
+        - extract_test: {jsonpath_mini: "state", test: "exists"}
         - compare:
              jsonpath_mini: "state"
              comparator: "str_eq"
              expected: 'ready'
 
 - test:
-     group: "Quickstart"
      name: "clear all"
      headers: {'Content-Type': 'application/json', "Token": 123}
      url: "/clear_all"
