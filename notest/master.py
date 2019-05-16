@@ -255,7 +255,6 @@ def run_testsets(testsets):
                 loop_interval = test.testset_config.loop_interval
             else:
                 loop_interval = 2
-            print(loop_count, loop_interval)
 
             # Initialize the dictionaries to store test fail counts and results
             if test.group not in group_results:

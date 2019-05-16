@@ -7,6 +7,7 @@ class TestResult:
     test = None  # Test run
     passed = False
     failures = None
+    loop = False
 
     def __init__(self):
         self.failures = list()
