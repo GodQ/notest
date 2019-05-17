@@ -57,15 +57,18 @@ def notest_run(args):
         Keys allowed for args:
             test_structure          - REQUIRED - Test file (yaml/json)
             working_directory      - OPTIONAL
+            override_config_variable_binds  - OPTIONAL - override variable_binds of config in test file
             interactive   - OPTIONAL - mode that prints info before and after test exectuion and pauses for user input for each test
-            skip_term_colors - OPTIONAL - mode that turn off the output term colors
+                                     please set False when not used by command
             config_file   - OPTIONAL
-            ssl_insecure   - OPTIONAL
+            ssl_insecure   - OPTIONAL  default True
             ext_dir   - OPTIONAL
             default_base_url   - OPTIONAL
             request_client   - OPTIONAL  default requests
             loop_interval   - OPTIONAL   default 2s
         """
+    # import pprint
+    # pprint.pprint(args)
 
     test_structure = args.get("test_structure")
     assert test_structure
@@ -90,32 +93,49 @@ def notest_run(args):
                               working_directory=working_directory)
 
     # Override configs from command line if config set
-    for t in testsets:
+    for testset in testsets:
         if 'interactive' in args and args['interactive'] is not None:
-            t.config.interactive = safe_to_bool(args['interactive'])
+            testset.config.interactive = safe_to_bool(args['interactive'])
 
         if 'verbose' in args and args['verbose'] is not None:
-            t.config.verbose = safe_to_bool(args['verbose'])
+            testset.config.verbose = safe_to_bool(args['verbose'])
 
         if 'ssl_insecure' in args and args['ssl_insecure'] is not None:
-            t.config.ssl_insecure = safe_to_bool(args['ssl_insecure'])
+            testset.config.ssl_insecure = safe_to_bool(args['ssl_insecure'])
 
-        if 'ext_dir' in args and args['ext_dir'] is not None:
+        if 'ext_dir' in args and args['ext_dir'] is not None and os.path.isdir(args['ext_dir']):
             auto_load_ext(args['ext_dir'])
 
         if 'default_base_url' in args and args['default_base_url'] is not None:
-            t.config.set_default_base_url(args['default_base_url'])
+            testset.config.set_default_base_url(args['default_base_url'])
 
-        if 'request_client' in args and args['request_client'] is not None and not t.config.request_client:
-            t.config.request_client = args['request_client']
+        if 'override_config_variable_binds' in args and args['override_config_variable_binds'] is not None:
+            override_vars = args['override_config_variable_binds']
+            if isinstance(override_vars, bytes):
+                override_vars = override_vars.decode()
+            if isinstance(override_vars, str):
+                try:
+                    override_vars = json.loads(override_vars)
+                except Exception as e:
+                    logger.error("Load json error, {} {} ".format(str(e), override_vars))
+                    raise e
+            elif isinstance(override_vars, list):
+                vd = dict()
+                for v in override_vars:
+                    t = v.split("=")
+                    if len(t) != 2:
+                        raise Exception("Option override_config_variable_binds can not be parsed! {}".format(override_vars))
+                    vd[t[0]] = t[1]
+                override_vars = vd
+            assert isinstance(override_vars, dict)
+            for k, v in override_vars.items():
+                testset.config.set_variable_binds(k, v)
+
+        if 'request_client' in args and args['request_client'] is not None and not testset.config.request_client:
+            testset.config.request_client = args['request_client']
 
         if 'loop_interval' in args and args['loop_interval']:
-            t.config.loop_interval = int(args['loop_interval'])
-
-        if 'skip_term_colors' in args and args[
-            'skip_term_colors'] is not None:
-            t.config.skip_term_colors = safe_to_bool(
-                args['skip_term_colors'])
+            testset.config.loop_interval = int(args['loop_interval'])
 
     # Execute all testsets
     failures_count = run_testsets(testsets)

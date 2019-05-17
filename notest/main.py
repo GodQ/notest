@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(
 from notest.lib.parsing import safe_to_bool
 from notest.master import run_testsets, parse_testsets
 from notest.plugin_registery import auto_load_ext
+from notest.notest_lib import notest_run
 
 """
 Executable class, ties everything together into the framework.
@@ -42,10 +43,16 @@ def main(args):
     Execute a test against the given base url.
 
     Keys allowed for args:
-        test          - REQUIRED - Test file (yaml)
+        test_file          - REQUIRED - Test file (yaml)
         log           - OPTIONAL - set logging level {debug,info,warning,error,critical} (default=warning)
         interactive   - OPTIONAL - mode that prints info before and after test exectuion and pauses for user input for each test
-        skip_term_colors - OPTIONAL - mode that turn off the output term colors
+        config_file
+        ssl_insecure
+        ext_dir
+        default_base_url
+        request_client
+        loop_interval
+
     """
 
     if 'log' in args and args['log'] is not None:
@@ -53,60 +60,16 @@ def main(args):
         logging_config['level'] = level
     logging.basicConfig(**logging_config)
 
-    test_file = args['test']
+    test_file = args['test_file']
     test_structure = read_test_file(test_file)
 
-    config_file = None
-    if 'config' in args and args['config'] is not None:
-        config_file = args['config']
-    else:
-        config_file = "config.json"
-    if os.path.isfile(config_file):
-        with open(config_file, "r") as fd:
-            data = fd.read()
-            if isinstance(data, bytes):
-                data = data.decode()
-            data = json.loads(data)
-            for k, v in args.items():
-                if v:
-                    data[k] = v
-            args = data
-
-    testsets = parse_testsets(test_structure,
-                           working_directory=os.path.dirname(test_file))
-
-    # Override configs from command line if config set
-    for t in testsets:
-        if 'interactive' in args and args['interactive'] is not None:
-            t.config.interactive = safe_to_bool(args['interactive'])
-
-        if 'verbose' in args and args['verbose'] is not None:
-            t.config.verbose = safe_to_bool(args['verbose'])
-
-        if 'ssl_insecure' in args and args['ssl_insecure'] is not None:
-            t.config.ssl_insecure = safe_to_bool(args['ssl_insecure'])
-
-        if 'ext_dir' in args and args['ext_dir'] is not None:
-            auto_load_ext(args['ext_dir'])
-
-        if 'default_base_url' in args and args['default_base_url'] is not None:
-            t.config.set_default_base_url(args['default_base_url'])
-
-        if 'request_client' in args and args['request_client'] is not None and not t.config.request_client:
-            t.config.request_client = args['request_client']
-
-        if 'loop_interval' in args and args['loop_interval']:
-            t.config.loop_interval = int(args['loop_interval'])
-
-        if 'skip_term_colors' in args and args[
-            'skip_term_colors'] is not None:
-            t.config.skip_term_colors = safe_to_bool(
-                args['skip_term_colors'])
+    args['test_structure'] = test_structure
+    args['working_directory'] = os.path.dirname(test_file)
 
     # Execute all testsets
-    failures = run_testsets(testsets)
+    failures_count = notest_run(args)
 
-    sys.exit(failures)
+    sys.exit(failures_count)
 
 
 def parse_command_line_args(args_in):
@@ -117,8 +80,9 @@ def parse_command_line_args(args_in):
                       action="store", type="string")
     parser.add_option("-i", "--interactive", help="Interactive mode",
                       action="store", type="string")
-    parser.add_option("-t", "--test", help="Test file to use",
-                      action="store", type="string")
+    parser.add_option("-t", "--test-file", help="Test file to use",
+                      action="store", type="string",
+                      dest="test_file")
     parser.add_option('--ssl-insecure',
                       help='Disable cURL host and peer cert verification',
                       action='store_true', default=False,
@@ -131,30 +95,31 @@ def parse_command_line_args(args_in):
                       help='default base url',
                       action='store',
                       dest="default_base_url")
-    parser.add_option('--skip_term_colors',
-                      help='Turn off the output term colors',
-                      action='store_true', default=False,
-                      dest="skip_term_colors")
-    parser.add_option("-c", '--config',
+    parser.add_option("-c", '--config-file',
                       help='config file',
                       action='store',
-                      dest="config")
-    parser.add_option("-l", '--loop_interval',
+                      dest="config_file")
+    parser.add_option("-l", '--loop-interval',
                       help='loop_interval',
                       action='store',
                       dest="loop_interval")
-    parser.add_option("-r", '--request_client',
+    parser.add_option("-r", '--request-client',
                       help='request_client',
                       action='store',
                       dest="request_client")
+    parser.add_option("-v", '--override-config-variable-binds',
+                      help='override_config_variable_binds, format -o key1=value1 -o key2=value2',
+                      action='append',
+                      dest="override_config_variable_binds")
 
     (args, unparsed_args) = parser.parse_args(args_in)
+    print(args)
     args = vars(args)
 
     # Handle url/test as named, or, failing that, positional arguments
-    if not args['test']:
+    if not args['test_file']:
         if len(unparsed_args) > 0:
-            args['test'] = unparsed_args[0]
+            args['test_file'] = unparsed_args[0]
         else:
             parser.print_help()
             parser.error(

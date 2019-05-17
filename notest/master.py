@@ -70,7 +70,6 @@ class TestConfig:
     interactive = False
     verbose = False
     ssl_insecure = False
-    skip_term_colors = False  # Turn off output term colors
 
     # Binding and creation of generators
     variable_binds = None
@@ -78,6 +77,9 @@ class TestConfig:
 
     def set_default_base_url(self, url):
         self.variable_binds['default_base_url'] = url
+
+    def set_variable_binds(self, k, v):
+        self.variable_binds[k] = v
 
     def __str__(self):
         return json.dumps(self, default=safe_to_json)
@@ -350,13 +352,7 @@ def run_testsets(testsets):
             group, passfail[failures == 0], str(test_count - failures),
             str(test_count))
 
-        if myconfig.skip_term_colors:
-            print(output_string)
-        else:
-            if failures > 0:
-                print('\033[91m' + output_string + '\033[0m')
-            else:
-                print('\033[92m' + output_string + '\033[0m')
+        print(output_string)
 
     return total_failures
 
