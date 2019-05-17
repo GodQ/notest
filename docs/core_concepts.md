@@ -1,7 +1,7 @@
 # Concepts
 
 ## NoTest执行流程图
-![](docs/notest_overview.png)
+![NoTest执行流程图](notest_overview.png "NoTest执行流程图")
 
 ## 用例结构介绍
 ```yaml

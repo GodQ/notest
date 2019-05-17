@@ -128,7 +128,7 @@ Test Group Quickstart SUCCEEDED: : 1/1 Tests Passed!
 一般测试场景都会是多个请求组合而来，[多测试请求案例](../examples/multi-test.yaml)展示了一个创建任务、查询任务、删除任务、清理测试环境的流程测试。这里就不再粘贴测试执行了。
 
 ### 测试场景中使用全局变量
-上面的测试都是hard code将测试数据写死在用例中了，而若需要修改测试数据则需要改很多地方，为了应对这种需求，我们可以使用全局变量来解决。参见[全局变量案例](examples/use_variable.yaml)
+上面的测试都是hard code将测试数据写死在用例中了，而若需要修改测试数据则需要改很多地方，为了应对这种需求，我们可以使用全局变量来解决。参见[全局变量案例](../examples/use_variable.yaml)
 在config中定义如下配置：
 ```yaml
 variable_binds:
@@ -157,7 +157,7 @@ variable_binds:
 从而实现数据只定义一次的目标
 
 ### 使用多种验证器
-上文中我们仅仅验证了http请求的响应码，而很多场景下我们需要对body和header做验证，我们可以使用validator来多维度验证结果，参考[使用验证器案例](examples\use_validator.yaml)。需要在test中如下定义：
+上文中我们仅仅验证了http请求的响应码，而很多场景下我们需要对body和header做验证，我们可以使用validator来多维度验证结果，参考[使用验证器案例](../examples\use_validator.yaml)。需要在test中如下定义：
 ```yaml
 validators:
         # Test key does not exist
