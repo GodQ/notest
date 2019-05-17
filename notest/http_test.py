@@ -82,6 +82,23 @@ class HttpTestResult(TestResult):
     def __init__(self):
         self.failures = list()
 
+    def to_dict(self):
+        d = {
+            "name": self.test.name,
+            "test_type": self.test.test_type,
+            "passed": self.passed,
+            "url": self.test.url,
+            "method": self.test.method,
+            "response_code": self.response_code,
+            "response_headers": self.response_headers,
+            "body": self.body,
+            "failures": list()
+        }
+        if self.failures:
+            for f in self.failures:
+                d['failures'].append(f.to_dict())
+        return d
+
     def __str__(self):
         msg = list()
         msg.append("\n====================")

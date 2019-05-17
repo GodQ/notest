@@ -45,7 +45,7 @@ def register_extensions(modules):
                 registry = getattr(module, registry_name)
                 for key, val in registry.items():
                     register_function(key, val)
-                    logger.warning("Register {} {} to module {}".format(
+                    logger.info("Register {} {} to module {}".format(
                         registry_name.lower(), key, ext
                     ))
                 if registry:

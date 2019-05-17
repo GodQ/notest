@@ -144,6 +144,14 @@ class Failure(object):
     def __str__(self):
         return self.message
 
+    def to_dict(self):
+        return {
+            "failure_type": self.failure_type,
+            "message": self.message,
+            "details": self.details,
+            "validator": self.validator
+        }
+
     def __init__(self, message="", details="", failure_type=None,
                  validator=None):
         self.message = message

@@ -95,7 +95,11 @@ def notest_run(args):
     # Override configs from command line if config set
     for testset in testsets:
         if 'interactive' in args and args['interactive'] is not None:
-            testset.config.interactive = safe_to_bool(args['interactive'])
+            ia = args['interactive']
+            if isinstance(ia, str):
+                ia = safe_to_bool(args['interactive'])
+            assert isinstance(ia, bool)
+            testset.config.interactive = ia
 
         if 'verbose' in args and args['verbose'] is not None:
             testset.config.verbose = safe_to_bool(args['verbose'])
@@ -103,8 +107,16 @@ def notest_run(args):
         if 'ssl_insecure' in args and args['ssl_insecure'] is not None:
             testset.config.ssl_insecure = safe_to_bool(args['ssl_insecure'])
 
-        if 'ext_dir' in args and args['ext_dir'] is not None and os.path.isdir(args['ext_dir']):
-            auto_load_ext(args['ext_dir'])
+        if 'ext_dir' in args and args['ext_dir'] is not None:
+            if not os.path.exists(args['ext_dir']):
+                msg = "Plugin Folder ext_dir can not found, path:'{}'  ...... Skipped\n".format(args['ext_dir'])
+                logger.error(msg)
+            elif os.path.isdir(args['ext_dir']):
+                auto_load_ext(args['ext_dir'])
+            else:
+                msg = "Option ext_dir must be folder, path:'{}'".format(args['ext_dir'])
+                logger.error(msg)
+                raise Exception(msg)
 
         if 'default_base_url' in args and args['default_base_url'] is not None:
             testset.config.set_default_base_url(args['default_base_url'])
@@ -138,6 +150,6 @@ def notest_run(args):
             testset.config.loop_interval = int(args['loop_interval'])
 
     # Execute all testsets
-    failures_count = run_testsets(testsets)
+    total_results = run_testsets(testsets)
 
-    return failures_count
+    return total_results

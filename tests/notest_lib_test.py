@@ -1,10 +1,13 @@
 from notest.notest_lib import notest_run
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 args = {
-    'config_file': '../examples\\config.json',
+    # 'config_file': '../examples/config.json',
     # 'default_base_url': None,
     'override_config_variable_binds': {
-        'title': 'GodQ'
+        'title': 'GodQ-override'
     },
     # 'ext_dir': None,
     'loop_interval': 1,
@@ -15,7 +18,7 @@ args = {
                                                           'type': 'number_sequence'}}],
                                    'testset': 'Quickstart app tests',
                                    'variable_binds': {'done': 'true',
-                                                      'title': 'Gaius-Test'}}},
+                                                      'title': 'GodQ'}}},
                        {'test': {'expected_status': [201],
                                  'method': 'POST',
                                  'name': 'post ready task',
@@ -36,4 +39,7 @@ args = {
 
 }
 
-fc = notest_run(args)
+total_results = notest_run(args)
+print("TestCase Count: {}".format(total_results.test_count))
+print("Failure Count: {}".format(total_results.failure_count))
+print("Failure List: {}".format(total_results.get_failures()))

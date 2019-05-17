@@ -8,9 +8,7 @@ from notest.lib.utils import read_test_file
 
 sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))))
-from notest.lib.parsing import safe_to_bool
-from notest.master import run_testsets, parse_testsets
-from notest.plugin_registery import auto_load_ext
+
 from notest.notest_lib import notest_run
 
 """
@@ -34,7 +32,7 @@ DEFAULT_LOGGING_LEVEL = logging.INFO
 logger = logging.getLogger('notest.main')
 logging_config = {
     'level': DEFAULT_LOGGING_LEVEL,
-    'format': "%(asctime)s - %(message)s"
+    'format': "%(asctime)s - %(levelname)s - %(message)s"
 }
 
 
@@ -67,32 +65,35 @@ def main(args):
     args['working_directory'] = os.path.dirname(test_file)
 
     # Execute all testsets
-    failures_count = notest_run(args)
+    total_results = notest_run(args)
 
-    sys.exit(failures_count)
+    if total_results.failure_count > 0:
+        sys.exit(1)
+    else:
+        sys.exit(0)
 
 
 def parse_command_line_args(args_in):
     """ Runs everything needed to execute from the command line, so main method is callable without arg parsing """
     parser = OptionParser(
-        usage="usage: %prog base_url test_filename.yaml [options] ")
+        usage="usage: notest test_filen.yaml [options] ")
     parser.add_option("--log", help="Logging level",
                       action="store", type="string")
     parser.add_option("-i", "--interactive", help="Interactive mode",
-                      action="store", type="string")
-    parser.add_option("-t", "--test-file", help="Test file to use",
+                      action="store_true", dest="interactive", default=False)
+    parser.add_option("-t", "--test-file", help="Test file to use, yaml or json file",
                       action="store", type="string",
                       dest="test_file")
     parser.add_option('--ssl-insecure',
                       help='Disable cURL host and peer cert verification',
                       action='store_true', default=False,
                       dest="ssl_insecure")
-    parser.add_option('--ext-dir',
-                      help='local extensions dir',
+    parser.add_option('-e', '--ext-dir',
+                      help='local extensions dir, default ./ext',
                       action='store',
                       dest="ext_dir")
     parser.add_option("-b", '--default-base-url',
-                      help='default base url',
+                      help='default base url, if not specified, use the config in test file',
                       action='store',
                       dest="default_base_url")
     parser.add_option("-c", '--config-file',
@@ -100,11 +101,12 @@ def parse_command_line_args(args_in):
                       action='store',
                       dest="config_file")
     parser.add_option("-l", '--loop-interval',
-                      help='loop_interval',
+                      help='loop_interval, default 2s',
                       action='store',
                       dest="loop_interval")
     parser.add_option("-r", '--request-client',
-                      help='request_client',
+                      help='request_client, select one in [requests, pycurl], default requests. '
+                           'If use pycurl, you should install pycurl first by "pip install -U pycurl"',
                       action='store',
                       dest="request_client")
     parser.add_option("-v", '--override-config-variable-binds',
@@ -113,7 +115,6 @@ def parse_command_line_args(args_in):
                       dest="override_config_variable_binds")
 
     (args, unparsed_args) = parser.parse_args(args_in)
-    print(args)
     args = vars(args)
 
     # Handle url/test as named, or, failing that, positional arguments

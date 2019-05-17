@@ -9,7 +9,7 @@ from notest.lib.utils import templated_var
 from notest.http_test_exec import run_http_test
 from notest.lib.utils import read_test_file
 from notest.operations import get_operation_function
-from notest.test_result import TestResult
+from notest.test_result import TestResult, TotalResults
 
 ESCAPE_DECODING = 'unicode_escape'
 
@@ -327,7 +327,7 @@ def run_testsets(testsets):
                     result.passed = True
                 except Exception as e:
                     result.passed = False
-                # group_results[test.group].append(result)
+                group_results[test.group].append(result)
 
             if result and result.loop is True:
                 loop_count += 1
@@ -354,6 +354,8 @@ def run_testsets(testsets):
 
         print(output_string)
 
-    return total_failures
+    total_results = TotalResults(group_results)
+
+    return total_results
 
 
