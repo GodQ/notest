@@ -88,10 +88,18 @@ def parse_command_line_args(args_in):
                       help='Disable cURL host and peer cert verification',
                       action='store_true', default=False,
                       dest="ssl_insecure")
-    parser.add_option('-e', '--ext-dir',
+    parser.add_option('--ext-dir',
                       help='local extensions dir, default ./ext',
                       action='store',
                       dest="ext_dir")
+    parser.add_option('--env-vars',
+                      help='environment variables, format: json, will be injected to config-variable-binds of testset',
+                      action='store',
+                      dest="env_vars")
+    parser.add_option('--env-file',
+                      help='environment variables file, will be injected to config-variable-binds of testset',
+                      action='store',
+                      dest="env_file")
     parser.add_option("-b", '--default-base-url',
                       help='default base url, if not specified, use the config in test file',
                       action='store',

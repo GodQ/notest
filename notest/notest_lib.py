@@ -50,6 +50,15 @@ def load_config(config_file):
     return CONFIG
 
 
+def load_env_vars(testset_config, env_vars):
+    print("Loading env vars: {}".format(env_vars))
+    if isinstance(env_vars, str):
+        env_vars = json.loads(env_vars)
+    assert isinstance(env_vars, dict)
+    for k, v in env_vars.items():
+        testset_config.set_variable_binds(k, v)
+
+
 def notest_run(args):
     """
         Execute a test against the given base url.
@@ -61,6 +70,8 @@ def notest_run(args):
             interactive   - OPTIONAL - mode that prints info before and after test exectuion and pauses for user input for each test
                                      please set False when not used by command
             config_file   - OPTIONAL
+            env_vars     -  OPTIONAL  format: json
+            env_file     -  OPTIONAL   format: json str or dict
             ssl_insecure   - OPTIONAL  default True
             ext_dir   - OPTIONAL
             default_base_url   - OPTIONAL
@@ -92,6 +103,8 @@ def notest_run(args):
     testsets = parse_testsets(test_structure,
                               working_directory=working_directory)
 
+    env_vars = None
+
     # Override configs from command line if config set
     for testset in testsets:
         if 'interactive' in args and args['interactive'] is not None:
@@ -120,6 +133,12 @@ def notest_run(args):
 
         if 'default_base_url' in args and args['default_base_url'] is not None:
             testset.config.set_default_base_url(args['default_base_url'])
+
+        if 'env_file' in args and args['env_file'] is not None:
+            load_env_vars(testset.config, read_test_file(args['env_file']))
+
+        if 'env_vars' in args and args['env_vars'] is not None:
+            load_env_vars(testset.config, args['env_vars'])
 
         if 'override_config_variable_binds' in args and args['override_config_variable_binds'] is not None:
             override_vars = args['override_config_variable_binds']

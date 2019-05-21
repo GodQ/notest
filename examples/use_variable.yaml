@@ -40,13 +40,6 @@
 
 - test:
      group: "Quickstart"
-     name: "get"
-     headers: {'Content-Type': 'application/json', "Token": 123}
-     url: "/task/$post_task_id"
-     method: "GET"
-     expected_status: [404]
-- test:
-     group: "Quickstart"
      name: "clear all"
      headers: {'Content-Type': 'application/json', "Token": 123}
      url: "/clear_all"

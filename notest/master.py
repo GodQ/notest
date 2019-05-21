@@ -59,7 +59,7 @@ class CD:
             DIR_LOCK.release()
 
 
-class TestConfig:
+class TestSetConfig:
     """ Configuration for a test run """
     timeout = DEFAULT_TIMEOUT  # timeout of tests, in seconds
     request_client = None  # requests or pycurl
@@ -88,10 +88,10 @@ class TestConfig:
 class TestSet:
     """ Encapsulates a set of tests and test configuration for them """
     tests = list()
-    config = TestConfig()
+    config = TestSetConfig()
 
     def __init__(self):
-        self.config = TestConfig()
+        self.config = TestSetConfig()
         self.tests = list()
 
     def __str__(self):
@@ -102,7 +102,7 @@ def parse_configuration(node, base_config=None):
     """ Parse input config to configuration information """
     test_config = base_config
     if not test_config:
-        test_config = TestConfig()
+        test_config = TestSetConfig()
 
     node = lowercase_keys(flatten_dictionaries(node))  # Make it usable
 
@@ -158,7 +158,7 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
     """
 
     tests_list = list()
-    test_config = TestConfig()
+    test_config = TestSetConfig()
     testsets = list()
 
     if working_directory is None:
@@ -233,7 +233,7 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
     return testsets
 
 
-def log_failure(failure, context=None, test_config=TestConfig()):
+def log_failure(failure, context=None, test_config=TestSetConfig()):
     """ Log a failure from a test """
     logger.error("Test Failure, failure type: {0}, Reason: {1}".format(
         failure.failure_type, failure.message))
