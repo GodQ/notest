@@ -60,8 +60,6 @@ def run_http_test(mytest, test_config, context=None,
             verbose=test_config.verbose
         )
     except Exception as e:
-        # Curl exception occurred (network error), do not pass go, do not
-        # collect $200
         trace = traceback.format_exc()
         result.failures.append(Failure(message="Curl Exception: {0}".format(
             e), details=trace,

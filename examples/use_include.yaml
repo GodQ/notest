@@ -2,21 +2,14 @@
 - config:
      testset: "Quickstart app tests"
      default_base_url: 'http://localhost:5000'
+     variable_binds:
+        user: 'u1'
+        password: 'p1'
+
+- include: 'login_module.yaml'
 
 - test:
      group: "Quickstart"
      name: "Basic get"
-     headers: {'Content-Type': 'application/json', "Token": 123}
+     headers: {'Content-Type': 'application/json', "Token": '$token'}
      url: "/tasks"
-     auth_username: "foobar"
-     auth_password: "secret"
-
-- include: 'test_module.yaml'
-
-- test:
-     group: "Quickstart"
-     name: "Basic get"
-     headers: {'Content-Type': 'application/json', "Token": 123}
-     url: "/tasks"
-     auth_username: "foobar"
-     auth_password: "secret"

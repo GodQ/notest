@@ -19,10 +19,17 @@ def templated_var(data, context=None):
     if isinstance(data, str) and data.find("$") > -1:
         res = templated_string(data, context)
         return res
-    elif isinstance(data, dict) and len(data) == 1 and "template" in data:
-        src = data["template"]
-        res = templated_string(src, context)
-        return res
+    elif isinstance(data, dict):
+        if len(data) == 1 and "template" in data:
+            src = data["template"]
+            res = templated_string(src, context)
+            return res
+        else:
+            res = dict()
+            for k, v in data.items():
+                k = templated_var(k, context)
+                res[k] = templated_var(v, context)
+            return res
     else:
         return data
 

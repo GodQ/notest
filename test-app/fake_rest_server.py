@@ -28,6 +28,9 @@ def get_max_id(extend_items=None):
 
 @app.route('/token', methods=['POST'])
 def post_token():
+    print("Parameters: ", request.args)
+    # print("Headers: ", request.headers)
+    print("body: ", request.json)
     global token
     token = str(time.time())
     res = {"status": "Created",

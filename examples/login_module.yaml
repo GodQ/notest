@@ -1,0 +1,29 @@
+---
+- config:
+     testset: "Quickstart app tests"
+     default_base_url: 'http://localhost:5000'
+     variable_binds:
+        user: 'aaaa'
+        password: 'password'
+
+- test:
+     group: "Quickstart"
+     name: "clear all"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     url: "/clear_all"
+     method: "POST"
+     expected_status: [204]
+
+- test:
+     group: "Quickstart"
+     name: "get token"
+     headers: {'Content-Type': 'application/json'}
+     url: "/token"
+     method: "POST"
+     body:     #'{"user": "$user","password": "$password"}'
+        user: '$user'
+        password: '$password'
+     expected_status: [201]
+     extract_binds:
+        - token: {jsonpath_mini: 'Token'}
+

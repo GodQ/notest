@@ -188,10 +188,8 @@ class HttpTest(CommonTest):
         """ Read body from file, applying template if pertinent """
         if self.http_body is None:
             return None
-        elif isinstance(self.http_body, str):
-            return self.http_body
         else:
-            return self.http_body.get_content(context=context)
+            return templated_var(self.http_body, context)
 
     body = property(get_body, set_body, None,
                     'Request body, if any (for POST/PUT methods)')
@@ -340,7 +338,10 @@ class HttpTest(CommonTest):
                 mytest.url = coerce_to_string(configvalue)
             elif configelement == 'body':
                 if isinstance(configvalue, dict):
-                    configvalue = configvalue.get("template")
+                    if "template" in configvalue:
+                        configvalue = configvalue.get("template")
+                    else:
+                        configvalue = json.dumps(configvalue)
                 mytest.http_body = configvalue
             elif configelement == 'extract_binds':
                 # Add a list of extractors, of format:

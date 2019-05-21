@@ -9,7 +9,7 @@ notest是以pip包的形式来发布。
 ## Command Mode
 
 ```bash
-(notest) λ notest -h
+(notest) λ python notest\main.py examples\use_include.yaml -h
 
 Usage: notest test_filen.yaml [options]
 
@@ -20,8 +20,11 @@ Options:
   -t TEST_FILE, --test-file=TEST_FILE
                         Test file to use, yaml or json file
   --ssl-insecure        Disable cURL host and peer cert verification
-  -e EXT_DIR, --ext-dir=EXT_DIR
-                        local extensions dir, default ./ext
+  --ext-dir=EXT_DIR     local extensions dir, default ./ext
+  --env-vars=ENV_VARS   environment variables, format: json, will be injected
+                        to config-variable-binds of testset
+  --env-file=ENV_FILE   environment variables file, will be injected to
+                        config-variable-binds of testset
   -b DEFAULT_BASE_URL, --default-base-url=DEFAULT_BASE_URL
                         default base url, if not specified, use the config in
                         test file

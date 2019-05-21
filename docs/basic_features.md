@@ -36,7 +36,10 @@
 该项目为一系列的工具类操作，比如数据库插入修改等可以使用type为mysql_upsert的operation
 
 - import
-允许用户import其他的用例文件，import的文件会生成一个新的testset，执行的独立的但result会汇总到一份中
+允许用户import其他的用例文件，import的文件会生成一个新的testset，类似于子进程，上下文独立，执行的result会汇总
+
+- include
+功能类似import，允许用户include其他的用例文件，区别是不会生成一个新的testset，会共享同一份上下文
 
 ## 概念介绍
 - testset

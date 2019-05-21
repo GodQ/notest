@@ -1,0 +1,26 @@
+- config:
+     testset: "Quickstart app tests"
+     default_base_url: 'http://localhost:5000'
+     variable_binds:
+        user: 'u1'
+        password: 'p1'
+
+- import:
+    file: login_module.yaml
+    input:
+        user: 'u1'
+        password: 'p1'
+    extract: ['token']
+
+- operation:
+    type: "print_operation"
+    print: '$token'
+
+- test:
+     group: "Quickstart"
+     name: "post tasks"
+     url: "/tasks"
+     method: "POST"
+     headers: {'Content-Type': 'application/json', "Token": '$token'}
+     body: '{"title": "Gaius", "id": 999, "done": true}'
+     expected_status: [201]

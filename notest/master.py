@@ -10,6 +10,7 @@ from notest.http_test_exec import run_http_test
 from notest.lib.utils import read_test_file
 from notest.operations import get_operation_function
 from notest.test_result import TestResult, TotalResults
+from notest.subtestset import SubTestSet
 
 ESCAPE_DECODING = 'unicode_escape'
 
@@ -74,6 +75,7 @@ class TestSetConfig:
     # Binding and creation of generators
     variable_binds = None
     generators = None  # Map of generator name to generator function
+    extract = None  # extract several variable in context
 
     def set_default_base_url(self, url):
         self.variable_binds['default_base_url'] = url
@@ -89,10 +91,12 @@ class TestSet:
     """ Encapsulates a set of tests and test configuration for them """
     tests = list()
     config = TestSetConfig()
+    subtestsets = dict()
 
     def __init__(self):
         self.config = TestSetConfig()
         self.tests = list()
+        self.subtestsets = dict()
 
     def __str__(self):
         return json.dumps(self, default=safe_to_json)
@@ -166,6 +170,9 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
 
     # returns a testconfig and collection of testsets
     assert isinstance(test_structure, list)
+
+    testset = TestSet()
+
     index = 0
     while index < len(test_structure):  # Iterate through lists of test and configuration elements
         node = test_structure[index]
@@ -190,7 +197,17 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
                         i += 1
 
                 if key == 'import':
-                    importfile = node[key]  # import another testset file
+                    if isinstance(node[key], dict):
+                        importfile = node[key]['file']  # import another testset file
+                        input = node[key].get('input')
+                        extract = node[key].get('extract')
+                    elif isinstance(node[key], str):
+                        importfile = node[key]  # import another testset file
+                        input = None
+                        extract = None
+                    else:
+                        raise Exception("Wrong Import Format: {}".format(node[key]))
+
                     if importfile[0] != "/":
                         importfile = os.path.join(working_directory,
                                                   importfile)
@@ -202,7 +219,17 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
                                 os.path.realpath(importfile))):
                             import_testsets = parse_testsets(
                                 import_test_structure, test_files)
-                            testsets.extend(import_testsets)
+                            # testsets.extend(import_testsets)
+                            assert len(import_testsets) == 1
+                            import_testsets[0].config.extract = extract
+                            testset.subtestsets[importfile] = import_testsets[0]
+
+                            subtestset = SubTestSet()
+                            subtestset.input = input
+                            subtestset.extract = extract
+                            subtestset.file_path = importfile
+                            tests_list.append(subtestset)  # call sub testset is also a test step
+
                 elif key == 'url':  # Simple test, just a GET to a URL
                     mytest = HttpTest()
                     val = node[key]
@@ -224,7 +251,6 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
 
                 index += 1
 
-    testset = TestSet()
     testset.tests = tests_list
     testset.config = test_config
     for t in tests_list:
@@ -241,127 +267,167 @@ def log_failure(failure, context=None, test_config=TestSetConfig()):
         logger.error("Validator/Error details:" + str(failure.details))
 
 
+def run_testset(testset, request_handle=None, group_results=None, group_failure_counts=None):
+    mytests = testset.tests
+    myconfig = testset.config
+    context = Context()
+
+    if group_results is None:
+        group_results = dict()
+
+    if group_failure_counts is None:
+        group_failure_counts = dict()
+
+    # Bind variables & add generators if pertinent
+    if myconfig.variable_binds:
+        context.bind_variables(myconfig.variable_binds)
+    if myconfig.generators:
+        for key, value in myconfig.generators.items():
+            context.add_generator(key, value)
+
+    # Make sure we actually have tests to execute
+    if not mytests:
+        # no tests in this test set, probably just imports.. skip to next
+        # test set
+        return
+
+    # Run tests, collecting statistics as needed
+    index = 0
+    loop_count = 0
+
+    while index < len(mytests) and loop_count < 100:
+        test = mytests[index]
+        if hasattr(test.testset_config, "loop_interval"):
+            loop_interval = test.testset_config.loop_interval
+        else:
+            loop_interval = 2
+
+        # Initialize the dictionaries to store test fail counts and results
+        if test.group not in group_results:
+            group_results[test.group] = list()
+            group_failure_counts[test.group] = 0
+
+        result = None
+        if test.test_type == "http_test":
+            result = run_http_test(test, test_config=myconfig, context=context,
+                                   http_handler=request_handle)
+            result.body = None  # Remove the body, save some memory!
+
+            if not result.passed:  # Print failure, increase failure counts for that test group
+                # Use result test URL to allow for templating
+                error_info = list()
+                error_info.append("")
+                error_info.append(' Test Failed: ' + test.name)
+                error_info.append(" URL=" + result.test.url)
+                error_info.append(" Group=" + test.group)
+                error_info.append(
+                    " HTTP Status Code: " + str(result.response_code))
+                error_info.append("")
+                logger.error("\n".join(error_info))
+
+                # Print test failure reasons
+                if result.failures:
+                    for failure in result.failures:
+                        log_failure(failure, context=context,
+                                    test_config=myconfig)
+
+                # Increment test failure counts for that group (adding an entry
+                # if not present)
+                failures = group_failure_counts[test.group]
+                failures = failures + 1
+                group_failure_counts[test.group] = failures
+
+            else:  # Test passed, print results
+                msg = list()
+                msg.append("")
+                msg.append('Test Name: ' + test.name)
+                msg.append("  Request= {} {}".format(result.test.method, result.test.url))
+                msg.append("  Group=" + test.group)
+                msg.append("  HTTP Status Code: {}".format(result.response_code))
+                msg.append("  passed\n")
+                logger.info("\n".join(msg))
+
+            # Add results for this test group to the resultset
+            if not result.passed or result.loop is False:
+                group_results[test.group].append(result)
+
+            # handle stop_on_failure flag
+            if not result.passed and test.stop_on_failure is not None and test.stop_on_failure:
+                logger.info(
+                    'STOP ON FAILURE! stopping test set execution, continuing with other test sets')
+                break
+        elif test.test_type == "operation":
+            logger.info("do operation {}, config:{}".format(
+                test.config.get('type'),
+                test.config
+            ))
+            result = TestResult()
+            result.test_type = "operation"
+            result.test = test
+            try:
+                opt_name = test.config.get('type')
+                opt_func = get_operation_function(opt_name)
+                opt_func(test.config, context)
+                result.passed = True
+            except Exception as e:
+                result.passed = False
+            group_results[test.group].append(result)
+
+        elif test.test_type == "subtestset":
+            logger.info("call subtestset {}".format(test.file_path))
+            file_path = test.file_path
+            input = test.input
+            extract = test.extract
+            subtestset = testset.subtestsets.get(file_path)
+            result = TestResult()
+            result.test_type = "subtestset"
+            result.test = test
+            if subtestset:
+                input = templated_var(input, context)
+                if input:
+                    if not subtestset.config.variable_binds:
+                        subtestset.config.variable_binds = input
+                    else:
+                        subtestset.config.variable_binds.update(input)
+                group_results, extract_data = run_testset(
+                    subtestset, request_handle, group_results, group_failure_counts)
+                if extract_data:
+                    context.variables.update(extract_data)
+                result.passed = True
+            else:
+                result.passed = False
+            group_results[test.group].append(result)
+
+        if result and result.loop is True:
+            loop_count += 1
+            time.sleep(loop_interval)
+            continue
+        else:
+            index += 1
+            continue
+
+    extract_data = dict()
+    if testset.config.extract:
+        for key in testset.config.extract:
+            if key in context.variables:
+                extract_data[key] = context.variables.get(key)
+            else:
+                raise Exception("Error Extract Var {} in Context".format(key))
+
+    return group_results, extract_data
+
+
 def run_testsets(testsets):
     """ Execute a set of tests, using given TestSet list input """
     group_results = dict()  # results, by group
     group_failure_counts = dict()
     total_failures = 0
     myinteractive = False
-    curl_handle = None
+    request_handle = None
 
     for testset in testsets:
-        mytests = testset.tests
-        myconfig = testset.config
-        context = Context()
-
-        # Bind variables & add generators if pertinent
-        if myconfig.variable_binds:
-            context.bind_variables(myconfig.variable_binds)
-        if myconfig.generators:
-            for key, value in myconfig.generators.items():
-                context.add_generator(key, value)
-
-        # Make sure we actually have tests to execute
-        if not mytests:
-            # no tests in this test set, probably just imports.. skip to next
-            # test set
-            break
-
-        myinteractive = True if myinteractive or myconfig.interactive else False
-
-        # Run tests, collecting statistics as needed
-        index = 0
-        loop_count = 0
-
-        while index < len(mytests) and loop_count < 100:
-            test = mytests[index]
-            if hasattr(test.testset_config, "loop_interval"):
-                loop_interval = test.testset_config.loop_interval
-            else:
-                loop_interval = 2
-
-            # Initialize the dictionaries to store test fail counts and results
-            if test.group not in group_results:
-                group_results[test.group] = list()
-                group_failure_counts[test.group] = 0
-
-            result = None
-            if test.test_type == "http_test":
-                result = run_http_test(test, test_config=myconfig, context=context,
-                                       http_handler=curl_handle)
-                result.body = None  # Remove the body, save some memory!
-
-                if not result.passed:  # Print failure, increase failure counts for that test group
-                    # Use result test URL to allow for templating
-                    error_info = list()
-                    error_info.append("")
-                    error_info.append(' Test Failed: ' + test.name)
-                    error_info.append(" URL=" + result.test.url)
-                    error_info.append(" Group=" + test.group)
-                    error_info.append(
-                        " HTTP Status Code: " + str(result.response_code))
-                    error_info.append("")
-                    logger.error("\n".join(error_info))
-
-                    # Print test failure reasons
-                    if result.failures:
-                        for failure in result.failures:
-                            log_failure(failure, context=context,
-                                        test_config=myconfig)
-
-                    # Increment test failure counts for that group (adding an entry
-                    # if not present)
-                    failures = group_failure_counts[test.group]
-                    failures = failures + 1
-                    group_failure_counts[test.group] = failures
-
-                else:  # Test passed, print results
-                    msg = list()
-                    msg.append("")
-                    msg.append('Test Name: ' + test.name)
-                    msg.append("  Request= {} {}".format(result.test.method, result.test.url))
-                    msg.append("  Group=" + test.group)
-                    msg.append("  HTTP Status Code: {}".format(result.response_code))
-                    msg.append("  passed\n")
-                    logger.info("\n".join(msg))
-
-                # Add results for this test group to the resultset
-                if not result.passed or result.loop is False:
-                    group_results[test.group].append(result)
-
-                # handle stop_on_failure flag
-                if not result.passed and test.stop_on_failure is not None and test.stop_on_failure:
-                    logger.info(
-                        'STOP ON FAILURE! stopping test set execution, continuing with other test sets')
-                    break
-            elif test.test_type == "operation":
-                logger.info("do operation {}, config:{}".format(
-                    test.config.get('type'),
-                    test.config
-                ))
-                result = TestResult()
-                result.test_type = "operation"
-                result.test = test
-                try:
-                    opt_name = test.config.get('type')
-                    opt_func = get_operation_function(opt_name)
-                    opt_func(test.config, context)
-                    result.passed = True
-                except Exception as e:
-                    result.passed = False
-                group_results[test.group].append(result)
-
-            if result and result.loop is True:
-                loop_count += 1
-                time.sleep(loop_interval)
-                continue
-            else:
-                index += 1
-                continue
-
-    if myinteractive:
-        # a break for when interactive bits are complete, before summary data
-        print("===================================")
+        run_testset(testset, request_handle=request_handle, group_results=group_results,
+                    group_failure_counts=group_failure_counts)
 
     # Print summary results
     for group in sorted(group_results.keys()):
