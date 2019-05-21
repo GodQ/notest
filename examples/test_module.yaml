@@ -1,0 +1,13 @@
+---
+- config:
+     testset: "Quickstart app tests"
+     default_base_url: 'http://localhost:5000'
+
+- test:
+     group: "Quickstart"
+     name: "test_module"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     url: "/tasks"
+     auth_username: "foobar"
+     auth_password: "secret"
+

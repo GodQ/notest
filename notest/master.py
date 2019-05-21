@@ -164,13 +164,33 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
     if working_directory is None:
         working_directory = os.path.abspath(os.getcwd())
 
-    # returns a testconfig and collection of tests
-    for node in test_structure:  # Iterate through lists of test and configuration elements
+    # returns a testconfig and collection of testsets
+    assert isinstance(test_structure, list)
+    index = 0
+    while index < len(test_structure):  # Iterate through lists of test and configuration elements
+        node = test_structure[index]
         if isinstance(node, dict):  # Each config element is a miniature key-value dictionary
             node = lowercase_keys(node)
             for key in node:
+                if key == 'include':
+                    includefile = node[key]  # include another file as module/modules
+                    if includefile[0] != "/":
+                        includefile = os.path.join(working_directory,
+                                                   includefile)
+                    # load include module file and delete its config, add its test/operation to local flow
+                    subnodes = read_test_file(includefile)
+                    assert isinstance(subnodes, list)
+                    i = index + 1
+                    for sn in subnodes:
+                        keys = sn.keys()
+                        assert len(keys) == 1
+                        if list(keys)[0] in ['config']:
+                            continue
+                        test_structure.insert(i, sn)
+                        i += 1
+
                 if key == 'import':
-                    importfile = node[key]  # import another file
+                    importfile = node[key]  # import another testset file
                     if importfile[0] != "/":
                         importfile = os.path.join(working_directory,
                                                   importfile)
@@ -201,6 +221,8 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
                 elif key == 'config' or key == 'configuration':
                     test_config = parse_configuration(
                         node[key], base_config=test_config)
+
+                index += 1
 
     testset = TestSet()
     testset.tests = tests_list
