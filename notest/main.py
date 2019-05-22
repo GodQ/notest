@@ -117,6 +117,14 @@ def parse_command_line_args(args_in):
                            'If use pycurl, you should install pycurl first by "pip install -U pycurl"',
                       action='store',
                       dest="request_client")
+    parser.add_option('--libcurl-path',
+                      help='pycurl request_client need libcurl installed in os',
+                      action='store',
+                      dest="libcurl_path")
+    parser.add_option('--libcurl-ca-file',
+                      help='pycurl request_client need libcurl ca/cert file specified in win os',
+                      action='store',
+                      dest="libcurl_ca_file")
     parser.add_option("-v", '--override-config-variable-binds',
                       help='override_config_variable_binds, format -o key1=value1 -o key2=value2',
                       action='append',

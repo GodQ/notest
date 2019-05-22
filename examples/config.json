@@ -1,6 +1,6 @@
 {
   "request_client": "pycurl",
-  "default_base_url": "http://10.241.0.117:5000",
+  "default_base_url": "http://10.241.0.144:5000",
   "ext_dir": "ext",
   "log": "info",
   "loop_interval": 2

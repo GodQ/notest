@@ -7,7 +7,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-bin/
 build/
 develop-eggs/
 dist/
@@ -51,3 +50,4 @@ activate
 .idea/
 activate.bat
 notest_activate.bat
+libcurl_win64*
