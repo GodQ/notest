@@ -152,8 +152,6 @@ class HttpTest(CommonTest):
     auth_type = HttpAuthType.HTTP_AUTH_BASIC
     delay = 0
 
-    templates = None  # Dictionary of template to compiled template
-
     # Bind variables, generators, and contexts
     variable_binds = None
     generator_binds = None  # Dict of variable name and then generator name
@@ -165,6 +163,7 @@ class HttpTest(CommonTest):
         self.expected_status = [200]
         self.http_client = None
         self.http_handler = None
+        self.templates = dict()  # Dictionary of template to compiled template
 
     @staticmethod
     def has_contains():
@@ -239,14 +238,20 @@ class HttpTest(CommonTest):
                 context.bind_variable(key, result)
 
     def realize(self, context=None):
+        if not self.templates:
+            self.templates['url'] = self.url
+            self.templates['method'] = self.method
+            self.templates['body'] = self.body
+            self.templates['headers'] = self.headers
+
         if not context:
             context = self.context
-        if self.url.startswith('/'):
-            self.url = "$default_base_url" + self.url
-        self.url = templated_var(self.url, context)
-        self.method = templated_var(self.method, context)
-        self.body = templated_var(self.body, context)
-        self.headers = templated_var(self.headers, context)
+        if self.templates['url'].startswith('/'):
+            self.templates['url'] = "$default_base_url" + self.templates['url']
+        self.url = templated_var(self.templates['url'], context)
+        self.method = templated_var(self.templates['method'], context)
+        self.body = templated_var(self.templates['body'], context)
+        self.headers = templated_var(self.templates['headers'], context)
 
     def send_request(self, timeout=DEFAULT_TIMEOUT, context=None,
                      handler=None, ssl_insecure=True, verbose=False):

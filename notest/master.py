@@ -5,6 +5,7 @@ import json
 import time
 import logging
 import threading
+import copy
 from notest.lib.utils import templated_var
 from notest.http_test_exec import run_http_test
 from notest.lib.utils import read_test_file
@@ -76,6 +77,9 @@ class TestSetConfig:
     variable_binds = None
     generators = None  # Map of generator name to generator function
     extract = None  # extract several variable in context
+    data_driven_generator = None
+    data_driven_generator_name = None
+    working_directory = None
 
     def set_default_base_url(self, url):
         self.variable_binds['default_base_url'] = url
@@ -139,10 +143,21 @@ def parse_configuration(node, base_config=None):
             flat = flatten_dictionaries(value)
             gen_map = dict()
             for generator_name, generator_config in flat.items():
-                gen = parse_generator(generator_config,
-                                      test_config.variable_binds)
+                gen = parse_generator(
+                    configuration=generator_config,
+                    variable_binds={
+                        **test_config.variable_binds,
+                        'working_directory': test_config.working_directory
+                    })
                 gen_map[str(generator_name)] = gen
             test_config.generators = gen_map
+
+    if 'data_driven' in node:
+        value = node['data_driven']
+        generator_name = value.get('generator', None)
+        generator_obj = test_config.generators[generator_name]
+        test_config.data_driven_generator = generator_obj
+        test_config.data_driven_generator_name = generator_name
 
     return test_config
 
@@ -167,6 +182,7 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
 
     if working_directory is None:
         working_directory = os.path.abspath(os.getcwd())
+    test_config.working_directory = working_directory
 
     # returns a testconfig and collection of testsets
     assert isinstance(test_structure, list)
@@ -291,120 +307,137 @@ def run_testset(testset, request_handle=None, group_results=None, group_failure_
         # test set
         return
 
-    # Run tests, collecting statistics as needed
-    index = 0
-    loop_count = 0
+    def none_generator():
+        yield None
 
-    while index < len(mytests) and loop_count < 100:
-        test = mytests[index]
-        if hasattr(test.testset_config, "loop_interval"):
-            loop_interval = test.testset_config.loop_interval
-        else:
-            loop_interval = 2
+    data_driven_generator = None
+    if myconfig.data_driven_generator:
+        data_driven_generator = myconfig.data_driven_generator
+    else:
+        data_driven_generator = none_generator()
 
-        # Initialize the dictionaries to store test fail counts and results
-        if test.group not in group_results:
-            group_results[test.group] = list()
-            group_failure_counts[test.group] = 0
+    for data in data_driven_generator:
+        if data:
+            if not isinstance(data, dict):
+                raise Exception("Data Driven Generator must return a dict, not {}".format(type(data)))
+            logger.info("*************************")
+            logger.info("Data Driven: {}".format(data))
+            context.bind_variables(data)
 
-        result = None
-        if test.test_type == "http_test":
-            result = run_http_test(test, test_config=myconfig, context=context,
-                                   http_handler=request_handle)
-            result.body = None  # Remove the body, save some memory!
+        # Run tests, collecting statistics as needed
+        index = 0
+        loop_count = 0
 
-            if not result.passed:  # Print failure, increase failure counts for that test group
-                # Use result test URL to allow for templating
-                error_info = list()
-                error_info.append("")
-                error_info.append(' Test Failed: ' + test.name)
-                error_info.append(" URL=" + result.test.url)
-                error_info.append(" Group=" + test.group)
-                error_info.append(
-                    " HTTP Status Code: " + str(result.response_code))
-                error_info.append("")
-                logger.error("\n".join(error_info))
+        while index < len(mytests) and loop_count < 100:
+            test = mytests[index]
+            if hasattr(test.testset_config, "loop_interval"):
+                loop_interval = test.testset_config.loop_interval
+            else:
+                loop_interval = 2
 
-                # Print test failure reasons
-                if result.failures:
-                    for failure in result.failures:
-                        log_failure(failure, context=context,
-                                    test_config=myconfig)
+            # Initialize the dictionaries to store test fail counts and results
+            if test.group not in group_results:
+                group_results[test.group] = list()
+                group_failure_counts[test.group] = 0
 
-                # Increment test failure counts for that group (adding an entry
-                # if not present)
-                failures = group_failure_counts[test.group]
-                failures = failures + 1
-                group_failure_counts[test.group] = failures
+            result = None
+            if test.test_type == "http_test":
+                result = run_http_test(test, test_config=myconfig, context=context,
+                                       http_handler=request_handle)
+                result.body = None  # Remove the body, save some memory!
 
-            else:  # Test passed, print results
-                msg = list()
-                msg.append("")
-                msg.append('Test Name: ' + test.name)
-                msg.append("  Request= {} {}".format(result.test.method, result.test.url))
-                msg.append("  Group=" + test.group)
-                msg.append("  HTTP Status Code: {}".format(result.response_code))
-                msg.append("  passed\n")
-                logger.info("\n".join(msg))
+                if not result.passed:  # Print failure, increase failure counts for that test group
+                    # Use result test URL to allow for templating
+                    error_info = list()
+                    error_info.append("")
+                    error_info.append(' Test Failed: ' + test.name)
+                    error_info.append(" URL=" + result.test.url)
+                    error_info.append(" Group=" + test.group)
+                    error_info.append(
+                        " HTTP Status Code: " + str(result.response_code))
+                    error_info.append("")
+                    logger.error("\n".join(error_info))
 
-            # Add results for this test group to the resultset
-            if not result.passed or result.loop is False:
+                    # Print test failure reasons
+                    if result.failures:
+                        for failure in result.failures:
+                            log_failure(failure, context=context,
+                                        test_config=myconfig)
+
+                    # Increment test failure counts for that group (adding an entry
+                    # if not present)
+                    failures = group_failure_counts[test.group]
+                    failures = failures + 1
+                    group_failure_counts[test.group] = failures
+
+                else:  # Test passed, print results
+                    msg = list()
+                    msg.append("")
+                    msg.append('Test Name: ' + test.name)
+                    msg.append("  Request= {} {}".format(result.test.method, result.test.url))
+                    msg.append("  Group=" + test.group)
+                    msg.append("  HTTP Status Code: {}".format(result.response_code))
+                    msg.append("  passed\n")
+                    logger.info("\n".join(msg))
+
+                # Add results for this test group to the resultset
+                if not result.passed or result.loop is False:
+                    group_results[test.group].append(result)
+
+                # handle stop_on_failure flag
+                if not result.passed and test.stop_on_failure is not None and test.stop_on_failure:
+                    logger.info(
+                        'STOP ON FAILURE! stopping test set execution, continuing with other test sets')
+                    break
+            elif test.test_type == "operation":
+                logger.info("do operation {}, config:{}".format(
+                    test.config.get('type'),
+                    test.config
+                ))
+                result = TestResult()
+                result.test_type = "operation"
+                result.test = test
+                try:
+                    opt_name = test.config.get('type')
+                    opt_func = get_operation_function(opt_name)
+                    opt_func(test.config, context)
+                    result.passed = True
+                except Exception as e:
+                    result.passed = False
                 group_results[test.group].append(result)
 
-            # handle stop_on_failure flag
-            if not result.passed and test.stop_on_failure is not None and test.stop_on_failure:
-                logger.info(
-                    'STOP ON FAILURE! stopping test set execution, continuing with other test sets')
-                break
-        elif test.test_type == "operation":
-            logger.info("do operation {}, config:{}".format(
-                test.config.get('type'),
-                test.config
-            ))
-            result = TestResult()
-            result.test_type = "operation"
-            result.test = test
-            try:
-                opt_name = test.config.get('type')
-                opt_func = get_operation_function(opt_name)
-                opt_func(test.config, context)
-                result.passed = True
-            except Exception as e:
-                result.passed = False
-            group_results[test.group].append(result)
+            elif test.test_type == "subtestset":
+                logger.info("call subtestset {}".format(test.file_path))
+                file_path = test.file_path
+                input = test.input
+                extract = test.extract
+                subtestset = testset.subtestsets.get(file_path)
+                result = TestResult()
+                result.test_type = "subtestset"
+                result.test = test
+                if subtestset:
+                    input = templated_var(input, context)
+                    if input:
+                        if not subtestset.config.variable_binds:
+                            subtestset.config.variable_binds = input
+                        else:
+                            subtestset.config.variable_binds.update(input)
+                    group_results, extract_data = run_testset(
+                        subtestset, request_handle, group_results, group_failure_counts)
+                    if extract_data:
+                        context.variables.update(extract_data)
+                    result.passed = True
+                else:
+                    result.passed = False
+                group_results[test.group].append(result)
 
-        elif test.test_type == "subtestset":
-            logger.info("call subtestset {}".format(test.file_path))
-            file_path = test.file_path
-            input = test.input
-            extract = test.extract
-            subtestset = testset.subtestsets.get(file_path)
-            result = TestResult()
-            result.test_type = "subtestset"
-            result.test = test
-            if subtestset:
-                input = templated_var(input, context)
-                if input:
-                    if not subtestset.config.variable_binds:
-                        subtestset.config.variable_binds = input
-                    else:
-                        subtestset.config.variable_binds.update(input)
-                group_results, extract_data = run_testset(
-                    subtestset, request_handle, group_results, group_failure_counts)
-                if extract_data:
-                    context.variables.update(extract_data)
-                result.passed = True
+            if result and result.loop is True:
+                loop_count += 1
+                time.sleep(loop_interval)
+                continue
             else:
-                result.passed = False
-            group_results[test.group].append(result)
-
-        if result and result.loop is True:
-            loop_count += 1
-            time.sleep(loop_interval)
-            continue
-        else:
-            index += 1
-            continue
+                index += 1
+                continue
 
     extract_data = dict()
     if testset.config.extract:

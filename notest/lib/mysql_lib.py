@@ -63,10 +63,17 @@ class MysqlClient:
             logger.error(str(e))
             raise e
 
-    def query(self, sql):
+    def query(self, sql, return_dict_list=False):
         cursor = self.get_cursor()
         cursor.execute(sql)
         ret = cursor.fetchall()
+        if return_dict_list is True:
+            r = list()
+            col_names = cursor.column_names
+            for line in ret:
+                t = dict(zip(col_names, line))
+                r.append(t)
+            ret = r
         return ret
 
 
@@ -86,6 +93,11 @@ if __name__ == '__main__':
         # cli.execute(
         #     "insert into sites(name, url) values('google', 'www.google.com')")
         ret = cli.query("select * from sites where name='baidu'")
+        print(type(ret))
+        for i in ret:
+            print(i)
+
+        ret = cli.query("select * from sites where name='baidu'", return_dict_list=True)
         print(type(ret))
         for i in ret:
             print(i)

@@ -1,0 +1,45 @@
+
+---
+- config:
+     testset: "Quickstart app tests"
+     variable_binds:
+        done: 'true'
+     default_base_url: 'http://localhost:5000'
+     generators:
+        - task_id_generator: {type: 'random_int'}
+        - csv_loader: {type: 'csv', file: 'test_data_driven.csv'}
+     data_driven:
+        generator: 'csv_loader'
+
+- test:
+     group: "Quickstart"
+     name: "clear all"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     url: "/clear_all"
+     method: "POST"
+     expected_status: [204]
+
+- test:
+     group: "Quickstart"
+     name: "post"
+     url: "/tasks"
+     method: "POST"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     body: '{"title": "$title", "id": "$task_id", "done": "$done"}'
+     expected_status: [201]
+
+- test:
+     group: "Quickstart"
+     name: "get"
+     url: "/tasks?id=$task_id"
+     method: "GET"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     expected_status: [200]
+
+- test:
+     group: "Quickstart"
+     name: "clear all"
+     headers: {'Content-Type': 'application/json', "Token": 123}
+     url: "/clear_all"
+     method: "POST"
+     expected_status: [204]

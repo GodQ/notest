@@ -18,7 +18,7 @@ for i, pkg in enumerate(uninstalled_pkgs):
         del uninstalled_pkgs[i]
 
 setuptools.setup(name='notest',
-      version='0.0.8',
+      version='0.0.9',
       description='Not Only Test! One Excellent Python Testing Tool',
       long_description='Not Only Test! One Excellent Python Testing Tool.',
       author='Chuanhao Qu',
