@@ -256,6 +256,7 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
                     with CD(working_directory):
                         child = node[key]
                         mytest = HttpTest.parse_from_dict(child)
+                        mytest.original_node = child
                         tests_list.append(mytest)
                 elif key == 'operation':  # Complex test with additional parameters
                     operation = Operation()
@@ -342,6 +343,7 @@ def run_testset(testset, request_handle=None, group_results=None, group_failure_
 
             result = None
             if test.test_type == "http_test":
+                test.reload()
                 result = run_http_test(test, test_config=myconfig, context=context,
                                        http_handler=request_handle)
                 result.body = None  # Remove the body, save some memory!
