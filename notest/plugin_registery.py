@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(
 from notest import generators
 from notest import validators
 from notest import operations
+from notest import test_runners
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +32,7 @@ def register_extensions(modules):
         # Extensions are registered by applying a register function to sets of
         # registry name/function pairs inside an object
         extension_applies = {
+            'TEST_RUNNERS': test_runners.register_test_runner,
             'VALIDATORS': validators.register_validator,
             'COMPARATORS': validators.register_comparator,
             'VALIDATOR_TESTS': validators.register_test,

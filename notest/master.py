@@ -5,9 +5,8 @@ import json
 import time
 import logging
 import threading
-import copy
 from notest.lib.utils import templated_var
-from notest.http_test_exec import run_http_test
+# from notest.http_test_runner.http_test_exec import run_http_test
 from notest.lib.utils import read_test_file
 from notest.operations import get_operation_function
 from notest.test_result import TestResult, TotalResults
@@ -22,7 +21,8 @@ from notest.generators import parse_generator
 from notest.operations import Operation
 from notest.lib.parsing import flatten_dictionaries, lowercase_keys, \
     safe_to_bool, safe_to_json
-from notest.http_test import HttpTest, DEFAULT_TIMEOUT
+# from notest.http_test_runner.http_test import HttpTest
+from notest.test_runners import get_test_runner_parser
 
 
 """
@@ -37,6 +37,7 @@ Module responsibilities:
 
 logger = logging.getLogger('notest.master')
 
+DEFAULT_TIMEOUT = 30
 
 DIR_LOCK = threading.RLock()  # Guards operations changing the working directory
 
@@ -246,16 +247,19 @@ def parse_testsets(test_structure, test_files=set(), working_directory=None):
                             subtestset.file_path = importfile
                             tests_list.append(subtestset)  # call sub testset is also a test step
 
-                elif key == 'url':  # Simple test, just a GET to a URL
-                    mytest = HttpTest()
-                    val = node[key]
-                    assert isinstance(val, str)
-                    mytest.url = val
-                    tests_list.append(mytest)
+                # elif key == 'url':  # Simple test, just a GET to a URL
+                #     mytest = HttpTest()
+                #     val = node[key]
+                #     assert isinstance(val, str)
+                #     mytest.url = val
+                #     tests_list.append(mytest)
                 elif key == 'test':  # Complex test with additional parameters
                     with CD(working_directory):
                         child = node[key]
-                        mytest = HttpTest.parse_from_dict(child)
+                        test_type = child.get('test_type', 'http_test')
+                        # mytest = HttpTest.parse_from_dict(child)
+                        runner_parser_func = get_test_runner_parser(test_type)
+                        mytest = runner_parser_func(child)
                         mytest.original_node = child
                         tests_list.append(mytest)
                 elif key == 'operation':  # Complex test with additional parameters
@@ -344,8 +348,8 @@ def run_testset(testset, request_handle=None, group_results=None, group_failure_
             result = None
             if test.test_type == "http_test":
                 test.reload()
-                result = run_http_test(test, test_config=myconfig, context=context,
-                                       http_handler=request_handle)
+                result = test.run_test(test_config=myconfig, context=context,
+                                       handler=request_handle)
                 result.body = None  # Remove the body, save some memory!
 
                 if not result.passed:  # Print failure, increase failure counts for that test group

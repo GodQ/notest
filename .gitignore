@@ -51,3 +51,4 @@ activate
 activate.bat
 notest_activate.bat
 libcurl_win64*
+tools/libcurl_bin/

@@ -4,7 +4,8 @@ import os
 import traceback
 import logging
 from notest.clients.request_client import get_client_class
-from notest.http_test import HttpTestResult, parse_headers, HttpTest
+from notest.test_result import TestResult
+# from notest.http_test_runner.http_test import HttpTestResult, parse_headers, HttpTest
 
 ESCAPE_DECODING = 'unicode_escape'
 
@@ -21,10 +22,118 @@ logger = logging.getLogger('notest.http_test')
 HEADER_ENCODING = 'ISO-8859-1'  # Per RFC 2616
 
 
-def run_http_test(mytest, test_config, context=None,
-                  http_handler=None, *args, **kwargs):
+# Parsing helper functions
+def coerce_to_string(val):
+    if isinstance(val, str):
+        return val
+    elif isinstance(val, int):
+        return str(val)
+    elif isinstance(val, bytes):
+        return val.decode('utf-8')
+    else:
+        raise TypeError(
+            "Input {0} is not a string or integer, and it needs to be!".format(
+                val))
+
+
+def coerce_string_to_ascii(val):
+    if isinstance(val, str):
+        return val.encode('ascii')
+    elif isinstance(val, bytes):
+        return val
+    else:
+        raise TypeError(
+            "Input {0} is not a string, string expected".format(val))
+
+
+def coerce_http_method(val):
+    myval = val
+    if not isinstance(myval, str) or len(val) == 0:
+        raise TypeError(
+            "Invalid HTTP method name: input {0} is not a string or has 0 length".format(
+                val))
+    if isinstance(myval, bytes):
+        myval = myval.decode('utf-8')
+    return myval.upper()
+
+
+def coerce_list_of_ints(val):
+    """ If single value, try to parse as integer, else try to parse as list of integer """
+    if isinstance(val, list):
+        return [int(x) for x in val]
+    else:
+        return [int(val)]
+
+
+class HttpTestResult(TestResult):
+    """ Encapsulates everything about a test response """
+    test = None  # Test run
+    response_code = None
+
+    body = None  # Response body, if tracked
+
+    passed = False
+    response_headers = None
+    failures = None
+    loop = False
+
+    def __init__(self):
+        self.failures = list()
+
+    def to_dict(self):
+        d = {
+            "name": self.test.name,
+            "test_type": self.test.test_type,
+            "passed": self.passed,
+            "url": self.test.url,
+            "method": self.test.method,
+            "response_code": self.response_code,
+            "response_headers": self.response_headers,
+            "body": self.body,
+            "failures": list()
+        }
+        if self.failures:
+            for f in self.failures:
+                d['failures'].append(f.to_dict())
+        return d
+
+    def __str__(self):
+        msg = list()
+        msg.append("\n====================")
+        msg.append("Test Type: {}".format(self.test.test_type))
+        msg.append("Passed? : {}".format(self.passed))
+        msg.append("Test Url: {} {}".format(self.test.method, self.test.url))
+        msg.append("Response Code: {}".format(self.response_code))
+        msg.append("Response Headers: {}".format(self.response_headers))
+        msg.append("Response Body: {}".format(self.body))
+        msg.append("Failures : {}".format(self.failures))
+        msg.append("====================\n")
+
+        return "\n".join(msg)
+
+
+def parse_headers(header_string):
+    """ Parse a header-string into individual headers
+        Implementation based on: http://stackoverflow.com/a/5955949/95122
+        Note that headers are a list of (key, value) since duplicate headers are allowed
+
+        NEW NOTE: keys & values are unicode strings, but can only contain ISO-8859-1 characters
+    """
+    # First line is request line, strip it out
+    if not header_string:
+        return list()
+    request, headers = header_string.split('\r\n', 1)
+    if not headers:
+        return list()
+
+    header_msg = message_from_string(headers)
+    # Note: HTTP headers are *case-insensitive* per RFC 2616
+    return [(k.lower(), v) for k, v in header_msg.items()]
+
+
+def run_http_test(mytest, test_config, context=None, http_handler=None):
     """ Put together test pieces: configure & run actual test, return results """
-    assert isinstance(mytest, HttpTest)
+    # assert isinstance(mytest, HttpTest)
 
     # Initialize a context if not supplied
     my_context = context
