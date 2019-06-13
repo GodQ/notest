@@ -2,7 +2,6 @@ import json
 import logging
 import string
 import copy
-from email import message_from_string
 
 logger = logging.getLogger('notest.http_test')
 

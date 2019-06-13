@@ -70,6 +70,7 @@ def main(args):
     total_results = notest_run(args)
     show_total_results(total_results)
     analyzer = TestResultsAnalyzer(total_results)
+    analyzer.save()
     if analyzer.get_failed_cases_count() > 0:
         sys.exit(1)
     else:

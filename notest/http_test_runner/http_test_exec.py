@@ -5,7 +5,7 @@ import traceback
 import logging
 from notest.clients.request_client import get_client_class
 from notest.test_result import TestResult
-# from notest.http_test_runner.http_test import HttpTestResult, parse_headers, HttpTest
+from email import message_from_string
 
 ESCAPE_DECODING = 'unicode_escape'
 

@@ -1,5 +1,5 @@
 import json
-import copy
+import os
 
 
 class TestResult:
@@ -20,9 +20,13 @@ class TestResult:
         self.failures = list()
 
     def add_key_field(self, key, value):
+        if isinstance(value, bytes):
+            value = value.decode()
         self.key_fields[key] = value
 
     def add_verbose_field(self, key, value):
+        if isinstance(value, bytes):
+            value = value.decode()
         self.verbose_fields[key] = value
 
     @property
@@ -42,7 +46,7 @@ class TestResult:
         if attribute in self.verbose_fields:
             return self.verbose_fields[attribute]
 
-    def to_dict(self):
+    def to_dict(self, dict_failures=False):
         d = {
             "testset": self.testset_name,
             "test_type": self.test_type,
@@ -54,7 +58,15 @@ class TestResult:
             **self.key_fields,
             **self.verbose_fields
         }
+        if dict_failures is True:
+            failures = d['failures']
+            dict_failures = [f.to_dict() for f in failures]
+            d['failures'] = dict_failures
         return d
+
+    def to_json(self):
+        d = self.to_dict(dict_failures=True)
+        return json.dumps(d)
 
     def to_str(self, verbose=False):
         msg = list()
@@ -136,6 +148,17 @@ class TestResultsAnalyzer:
                 cases[key]['passed'].append(res)
 
         return cases
+
+    def save(self, file_path="test_results.json"):
+        if not file_path:
+            file_path = "test_results.json"
+        results_list = [r.to_dict(dict_failures=True) for r in self.total_results]
+        ret_json = json.dumps(results_list)
+        with open(file_path, "w") as fd:
+            fd.write(ret_json)
+        print("\n+++++++++++++++++++++++++++++++++++++")
+        file_path = os.path.abspath(file_path)
+        print("Test Results saved in {}".format(file_path))
 
 
 def show_total_results(total_results):

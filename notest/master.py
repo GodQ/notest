@@ -306,6 +306,7 @@ def run_testset(testset, request_handle=None, test_results=None):
                 ))
                 result = TestResult()
                 # result.test_type = "operation"
+                result.testset_name = testset.name
                 result.test_obj = test
                 try:
                     opt_name = test.config.get('type')
@@ -325,6 +326,7 @@ def run_testset(testset, request_handle=None, test_results=None):
                 result = TestResult()
                 # result.test_type = "testset"
                 result.test_obj = test
+                result.testset_name = testset.name
                 if subtestset:
                     input = templated_var(input, context)
                     if input:

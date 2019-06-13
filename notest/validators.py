@@ -144,13 +144,19 @@ class Failure(object):
     def __str__(self):
         return self.message
 
-    def to_dict(self):
-        return {
+    def to_dict(self, with_validator=True):
+        d = {
             "failure_type": self.failure_type,
             "message": self.message,
             "details": self.details,
-            "validator": self.validator
         }
+        if with_validator is True:
+            d['validator'] = self.validator
+        return d
+
+    def to_json(self):
+        d = self.to_dict(with_validator=False)
+        return json.dumps(d)
 
     def __init__(self, message="", details="", failure_type=None,
                  validator=None):
