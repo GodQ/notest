@@ -65,51 +65,51 @@ def coerce_list_of_ints(val):
         return [int(val)]
 
 
-class HttpTestResult(TestResult):
-    """ Encapsulates everything about a test response """
-    test = None  # Test run
-    response_code = None
-
-    body = None  # Response body, if tracked
-
-    passed = False
-    response_headers = None
-    failures = None
-    loop = False
-
-    def __init__(self):
-        self.failures = list()
-
-    def to_dict(self):
-        d = {
-            "name": self.test.name,
-            "test_type": self.test.test_type,
-            "passed": self.passed,
-            "url": self.test.url,
-            "method": self.test.method,
-            "response_code": self.response_code,
-            "response_headers": self.response_headers,
-            "body": self.body,
-            "failures": list()
-        }
-        if self.failures:
-            for f in self.failures:
-                d['failures'].append(f.to_dict())
-        return d
-
-    def __str__(self):
-        msg = list()
-        msg.append("\n====================")
-        msg.append("Test Type: {}".format(self.test.test_type))
-        msg.append("Passed? : {}".format(self.passed))
-        msg.append("Test Url: {} {}".format(self.test.method, self.test.url))
-        msg.append("Response Code: {}".format(self.response_code))
-        msg.append("Response Headers: {}".format(self.response_headers))
-        msg.append("Response Body: {}".format(self.body))
-        msg.append("Failures : {}".format(self.failures))
-        msg.append("====================\n")
-
-        return "\n".join(msg)
+# class HttpTestResult(TestResult):
+#     """ Encapsulates everything about a test response """
+#     test_obj = None  # Test run
+#     response_code = None
+#
+#     body = None  # Response body, if tracked
+#
+#     passed = False
+#     response_headers = None
+#     failures = None
+#     loop = False
+#
+#     def __init__(self):
+#         self.failures = list()
+#
+#     def to_dict(self):
+#         d = {
+#             "name": self.test_obj.name,
+#             "test_type": self.test_obj.test_type,
+#             "passed": self.passed,
+#             "url": self.test_obj.url,
+#             "method": self.test_obj.method,
+#             "response_code": self.response_code,
+#             "response_headers": self.response_headers,
+#             "body": self.body,
+#             "failures": list()
+#         }
+#         if self.failures:
+#             for f in self.failures:
+#                 d['failures'].append(f.to_dict())
+#         return d
+#
+#     def __str__(self):
+#         msg = list()
+#         msg.append("\n====================")
+#         msg.append("Test Type: {}".format(self.test_obj.test_type))
+#         msg.append("Passed? : {}".format(self.passed))
+#         msg.append("Test Url: {} {}".format(self.test_obj.method, self.test_obj.url))
+#         msg.append("Response Code: {}".format(self.response_code))
+#         msg.append("Response Headers: {}".format(self.response_headers))
+#         msg.append("Response Body: {}".format(self.body))
+#         msg.append("Failures : {}".format(self.failures))
+#         msg.append("====================\n")
+#
+#         return "\n".join(msg)
 
 
 def parse_headers(header_string):
@@ -142,8 +142,8 @@ def run_http_test(mytest, test_config, context=None, http_handler=None):
     mytest.context = my_context
     mytest.update_context_before()
 
-    result = HttpTestResult()
-    result.test = mytest
+    result = TestResult()
+    result.ref_test_obj = mytest
     result.passed = None
 
     if test_config.interactive:
@@ -161,6 +161,12 @@ def run_http_test(mytest, test_config, context=None, http_handler=None):
 
     # send request
     try:
+        mytest.realize(my_context)
+        result.add_key_field("url", mytest.url)
+        result.add_key_field("method", mytest.method)
+        result.add_verbose_field("request_headers", mytest.headers)
+        result.add_verbose_field("request_body", mytest.body)
+
         http_response = mytest.send_request(
             timeout=test_config.timeout,
             context=my_context,
@@ -170,9 +176,10 @@ def run_http_test(mytest, test_config, context=None, http_handler=None):
         )
     except Exception as e:
         trace = traceback.format_exc()
-        result.failures.append(Failure(message="Curl Exception: {0}".format(
-            e), details=trace,
-            failure_type=validators.FAILURE_CURL_EXCEPTION))
+        result.failures.append(
+            Failure(message="Http Request Exception: {0}".format(e),
+                    details=trace,
+                    failure_type=validators.FAILURE_CURL_EXCEPTION))
         result.passed = False
         client = mytest.testset_config.request_client
         if not client:
@@ -182,7 +189,7 @@ def run_http_test(mytest, test_config, context=None, http_handler=None):
         return result
 
     # Retrieve Body
-    result.body = http_response.body
+    result.add_verbose_field('response_body', http_response.body)
 
     # Retrieve Headers
     headers = http_response.headers
@@ -190,7 +197,7 @@ def run_http_test(mytest, test_config, context=None, http_handler=None):
         headers = str(headers, HEADER_ENCODING)  # Per RFC 2616
         # Parse HTTP headers
         try:
-            result.response_headers = parse_headers(headers)
+            result.add_verbose_field('response_headers', parse_headers(headers))
         except Exception as e:
             trace = traceback.format_exc()
             error = "Header parsing exception: {} {}".format(e, headers)
@@ -215,32 +222,29 @@ def run_http_test(mytest, test_config, context=None, http_handler=None):
                 failure_type=validators.FAILURE_TEST_EXCEPTION))
         result.passed = False
         return result
-    result.response_headers = headers
-    response_code = http_response.status_code
-    result.response_code = response_code
+    result.add_verbose_field('response_headers', headers)
+    status_code = http_response.status_code
+    result.add_key_field('status_code', status_code)
 
     logger.debug("Initial Test Result, based on expected response code: " +
-                 str(response_code in mytest.expected_status))
+                 str(status_code in mytest.expected_status))
 
-    if response_code in mytest.expected_status:
+    if status_code in mytest.expected_status:
         result.passed = True
     else:
         # Invalid response code
         result.passed = False
         failure_message = "Invalid HTTP response code: response code {0} not in expected codes [{1}]".format(
-            response_code, mytest.expected_status)
+            status_code, mytest.expected_status)
         result.failures.append(Failure(
             message=failure_message, details=None,
             failure_type=validators.FAILURE_INVALID_RESPONSE))
-
-    # print str(test_config.print_bodies) + ',' + str(not result.passed) + ' ,
-    # ' + str(test_config.print_bodies or not result.passed)
 
     headers = result.response_headers
 
     # execute validator
     if result.passed is True:
-        body = result.body
+        body = result.response_body
         if mytest.validators is not None and isinstance(mytest.validators,
                                                         list):
             logger.debug("executing validators: " +
@@ -260,11 +264,11 @@ def run_http_test(mytest, test_config, context=None, http_handler=None):
             logger.debug("no validators found")
 
         # Only do context updates if test was successful
-        mytest.update_context_after(result.body, headers)
+        mytest.update_context_after(result.response_body, headers)
 
     # execute loop_until_conditions
     if result.passed is True:
-        body = result.body
+        body = result.response_body
         if mytest.loop_until_conditions is not None and isinstance(mytest.loop_until_conditions, list):
             logger.debug("executing loop_until_conditions: " +
                          str(len(mytest.loop_until_conditions)))
@@ -280,25 +284,21 @@ def run_http_test(mytest, test_config, context=None, http_handler=None):
 
     # Print response body if override is set to print all *OR* if test failed
     # (to capture maybe a stack trace)
-    if test_config.print_bodies or not result.passed:
+    if not result.passed:
         if test_config.interactive:
             print("RESPONSE:")
-        if result.body:
-            body = result.body
-            if isinstance(body, bytes):
-                print(body.decode())
-            else:
-                print(body)
-        # else:
-        #     print("None")
+            if result.response_body:
+                body = result.response_body
+                if isinstance(body, bytes):
+                    print(body.decode())
+                else:
+                    print(body)
 
-    if test_config.print_headers or not result.passed:
+    if not result.passed:
         if test_config.interactive:
             print("RESPONSE HEADERS:")
-        if result.response_headers:
-            print(result.response_headers)
-        # else:
-        #     print("None")
+            if result.response_headers:
+                print(result.response_headers)
 
     # TODO add string escape on body output
     logger.debug(str(result))

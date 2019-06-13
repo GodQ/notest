@@ -1,6 +1,6 @@
 ---
 - config:
-     testset: "Quickstart app tests"
+     testset: "login"
      default_base_url: 'http://localhost:5000'
      variable_binds:
         user: 'aaaa'

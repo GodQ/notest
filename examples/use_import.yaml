@@ -1,17 +1,20 @@
 - config:
-     testset: "Quickstart app tests"
+     testset: "use import"
+     collect_import_result: false
      default_base_url: 'http://localhost:5000'
      variable_binds:
         user: 'u1'
         password: 'p1'
 
 - test:
-     group: "Quickstart"
+     group: "aaa"
      name: "Basic get"
      headers: {'Content-Type': 'application/json', "Token": 123}
      url: "/tasks"
 
 - import:
+    group: "login_module"
+    name: "login_module"
     file: login_module.yaml
     input:
         user: 'u1'
@@ -23,7 +26,7 @@
     print: '$token'
 
 - test:
-     group: "Quickstart"
+     group: "aaa"
      name: "post tasks"
      url: "/tasks"
      method: "POST"

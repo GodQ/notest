@@ -10,6 +10,8 @@ sys.path.append(os.path.dirname(os.path.dirname(
     os.path.realpath(__file__))))
 
 from notest.notest_lib import notest_run
+from notest.test_result import TestResultsAnalyzer, show_total_results
+
 
 """
 Executable class, ties everything together into the framework.
@@ -66,8 +68,9 @@ def main(args):
 
     # Execute all testsets
     total_results = notest_run(args)
-
-    if total_results.failure_count > 0:
+    show_total_results(total_results)
+    analyzer = TestResultsAnalyzer(total_results)
+    if analyzer.get_failed_cases_count() > 0:
         sys.exit(1)
     else:
         sys.exit(0)

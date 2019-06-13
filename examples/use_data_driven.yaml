@@ -20,7 +20,7 @@
      expected_status: [204]
 
 - test:
-     group: "Quickstart"
+     group: "target"
      name: "post"
      url: "/tasks"
      method: "POST"

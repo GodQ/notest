@@ -1,6 +1,7 @@
 
 class CommonTest:
     test_type = None
+    name = None
     config = None
     testset_config = None
     group = None
